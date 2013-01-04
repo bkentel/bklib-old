@@ -10,6 +10,14 @@
 *.user
 *.sln.docstates
 
+# Binaries
+*.dll
+*.tga
+*.bmp
+*.png
+*.zip
+*.7z
+
 # Build results
 [Dd]ebug/
 [Rr]elease/
