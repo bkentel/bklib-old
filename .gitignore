@@ -12,9 +12,6 @@
 
 # Binaries
 *.dll
-*.tga
-*.bmp
-*.png
 *.zip
 *.7z
 
