@@ -5,6 +5,9 @@
 #define BK_UNUSED_VAR(x) (void)x
 #define BK_BREAK __debugbreak()
 
+#define BK_CONCAT_IMPL(a, b) a##b
+#define BK_CONCAT(a, b) BK_CONCAT_IMPL(a, b)
+
 namespace bklib { namespace detail {
 
 template <typename T>

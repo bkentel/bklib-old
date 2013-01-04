@@ -1,8 +1,17 @@
+////////////////////////////////////////////////////////////////////////////////
+//! @file
+//! @author Brandon Kentel
+//! @date   Jan 2013
+//! @brief  Unclassified utilities. 
+////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
 #include <type_traits>
 
+#include "macros.hpp"
+
 namespace bklib {
+
 
 template <typename T, typename... Args>
 void safe_callback(T&& callback, Args&&... args) {
@@ -10,49 +19,6 @@ void safe_callback(T&& callback, Args&&... args) {
         callback(std::forward<Args>(args)...);
     }
 }
-
-template <typename F>
-class on_scope_exit {
-public:
-    on_scope_exit(on_scope_exit&& other)
-        : active_(other.active_), f_(std::move(other.f_))
-    {
-        other.cancel();
-    }
-
-    on_scope_exit(F function, bool active = true)
-        : active_(active), f_(std::move(function))
-    {
-    }
-
-    ~on_scope_exit() {
-        if (active_) f_();
-    }
-
-    void cancel() {
-        active_ = false;
-    }
-private:
-    on_scope_exit(); //=delete
-    on_scope_exit(on_scope_exit const&); //=delete
-    on_scope_exit& operator=(on_scope_exit const&); //=delete
-
-    bool active_;
-    F f_;
-};
-
-template <typename F>
-on_scope_exit<F> make_on_scope_exit(F function, bool active = true) {
-    return on_scope_exit<F>(std::move(function), active);
-}
-
-#define BK_CONCAT_IMPL(a, b) a##b
-#define BK_CONCAT(a, b) BK_CONCAT_IMPL(a, b)
-
-#define BK_ON_SCOPE_EXIT(function)              \
-auto BK_CONCAT(on_scope_exit_var_, __COUNTER__) = ::bklib::make_on_scope_exit( \
-    [&]() -> void function \
-)
 
 template <typename T>
 struct reverse_adapter_t {
@@ -95,16 +61,16 @@ auto remove_const(T x) -> typename std::remove_const<T>::type {
     return const_cast<typename std::remove_const<T>::type>(x);
 }
 
-template <typename C, typename F>
-void for_all(C&& container, F&& function) {
-    std::for_each(
-        std::begin(container),
-        std::end(container),
-        [&function](decltype(*std::begin(container))& i) {
-            function(i);
-        }
-    );
-}
+//template <typename C, typename F>
+//void for_all(C&& container, F&& function) {
+//    std::for_each(
+//        std::begin(container),
+//        std::end(container),
+//        [&function](decltype(*std::begin(container))& i) {
+//            function(i);
+//        }
+//    );
+//}
 
 template <typename T>
 struct base_type {

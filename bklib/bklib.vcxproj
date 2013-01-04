@@ -178,6 +178,7 @@
     <ClInclude Include="util\flagset.hpp" />
     <ClInclude Include="util\macros.hpp" />
     <ClInclude Include="util\make_unique.hpp" />
+    <ClInclude Include="util\scope_exit.hpp" />
     <ClInclude Include="util\stringize.hpp" />
     <ClInclude Include="util\traits.hpp" />
     <ClInclude Include="util\util.hpp" />

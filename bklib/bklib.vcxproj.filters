@@ -93,6 +93,9 @@
     <ClInclude Include="platform\win\d2d.ipp" />
     <ClInclude Include="platform\win\input.ipp" />
     <ClInclude Include="platform\win\window.ipp" />
+    <ClInclude Include="util\scope_exit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gfx\renderer\renderer2d\renderer2d.cpp">

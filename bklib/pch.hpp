@@ -143,3 +143,4 @@
 #include "util/make_unique.hpp"
 #include "util/assert.hpp"
 #include "types.hpp"
+#include "util/scope_exit.hpp"
