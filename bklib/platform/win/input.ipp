@@ -11,7 +11,8 @@
 #include "input/input.hpp"
 #include "com/com.hpp"
 
-#pragma warning( disable : 4702 )
+#pragma warning( disable : 4100 ) //! @todo unreferenced params
+#pragma warning( disable : 4702 ) //! @todo unreachable code
 
 //#define BK_TRACE_BEGIN ::OutputDebugStringW(__FUNCTIONW__ L"\n");
 #define BK_TRACE_BEGIN
@@ -1967,4 +1968,5 @@ impl::ime_manager_impl_t::GetWnd(
 #undef BK_TRANSLATE_EXCEPTIONS_BEGIN
 #undef BK_TRANSLATE_EXCEPTIONS_END
 
+#pragma warning( default : 4100 )
 #pragma warning( default : 4702 )
