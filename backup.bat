@@ -1,0 +1,1 @@
+"C:\Program Files\7-Zip\7z" a -r -xr!docs -xr!ipch -xr!*.dll -xr!*.exe -xr!build -xr!*.7z -xr!*.sdf -xr!*.bat bklib *
