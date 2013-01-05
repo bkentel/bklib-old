@@ -187,6 +187,19 @@ int main(int argc, char const* argv[])
 try {
     using namespace bklib;
 
+    block_pool<std::string, 10> spool;
+    auto sp0 = spool.alloc("test     0");
+    auto sp1 = spool.alloc("test     1");
+    auto sp2 = spool.alloc("test     2");
+    auto sp3 = spool.alloc("test     3");
+    auto sp4 = spool.alloc("test     4");
+    auto sp5 = spool.alloc("test     5");
+    auto sp6 = spool.alloc("test     6");
+    auto sp7 = spool.alloc("test     7");
+    auto sp8 = spool.alloc("test     8");
+    auto sp9 = spool.alloc("test     9");
+    auto spA = spool.alloc("test     A");
+
     //create the system window and wait until a future signaling its completion
     //is ready
     window::promise_t is_created;

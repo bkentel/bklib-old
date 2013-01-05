@@ -2,9 +2,105 @@
 
 #include "pch.hpp"
 
+#include "exception.hpp"
+
 //! @todo refactor and comment
 
 namespace bklib {
+
+struct pool_full_exception : virtual bklib::exception_base { };
+
+enum class block_flags : uint8_t {
+    free = 1,
+    used = 2,
+};
+
+struct block_info {
+    static uint32_t const END_INDEX = ~0U;
+
+    uint8_t     key;
+    block_flags flags;
+    uint16_t    count;
+    uint32_t    index;
+};
+
+template <typename T, size_t Size>
+struct block_pool {
+public:
+    struct allocation {
+        T*         pointer;
+        block_info info;
+
+        T* operator->() { return pointer; }
+    };
+
+    block_pool(uint8_t key = 0)
+        : first_free_(0)
+    {
+        while (key == 0) {
+            key = std::rand() % 0xFF;
+        }
+
+        uint32_t index = 0;
+        
+        std::generate_n(&state_[0], Size, [&] {
+            block_info const result = {
+                key,
+                block_flags::free,
+                1,
+                ++index
+            };
+
+            return result;
+        });
+    }
+
+    template <typename... Args>
+    allocation alloc(Args&&... args) {
+        auto const index = check_index_(first_free_);
+        auto const next  = find_next_free_();
+
+        auto& result_state = state_[index];
+        auto& result_block = data_[index];
+
+        new (&result_block) T(std::forward<Args>(args)...);
+
+        result_state.flags = block_flags::used;
+        result_state.index = index;
+
+        first_free_ = next;
+
+        allocation const result = {
+            &result_block, result_state
+        };
+        
+        return result;
+    }
+
+    void free(allocation a) {
+    }
+private:
+    uint32_t check_index_(uint32_t i) const {
+        if (i >= Size) {
+            BOOST_THROW_EXCEPTION(pool_full_exception());
+        }
+
+        return i;
+    }
+
+    uint32_t find_next_free_() {
+        auto const first = check_index_(first_free_);
+        BK_ASSERT_MSG(state_[first].flags == block_flags::free, "invalid state!");
+        
+        auto const next = state_[first].index;
+        return next < Size ? next : block_info::END_INDEX;
+    }
+
+    uint32_t                     first_free_;
+    std::array<block_info, Size> state_;
+    std::array<T, Size>          data_;
+};
+
 
 //! @todo change this
 struct cache_exception : public std::exception {
