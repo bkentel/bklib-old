@@ -9,8 +9,9 @@
 #include <Msctf.h>
 #include <OleCtl.h>
 
-#undef min
-#undef max
+#include <GL/glew.h>
+#include <GL/wglew.h>
+#include <gl/GL.h>
 
 #include "exception.hpp"
 
@@ -37,6 +38,60 @@ namespace detail  {
 }
 
 typedef boost::error_info<detail::tag_com_result_code, HRESULT> com_result_code;
+
+//==============================================================================
+//! Helper to delete handles for use with std::unique_ptr.
+//==============================================================================
+template <typename T> struct handle_deleter;
+
+//! HWND deleter.
+template <> struct handle_deleter<HWND> {
+    typedef HWND pointer;
+
+    void operator()(HWND handle) const {
+        ::DestroyWindow(handle);
+    }
+};
+
+//! HGLRC deleter.
+template <> struct handle_deleter<HGLRC> {
+    typedef HGLRC pointer;
+
+    void operator()(HGLRC handle) const {
+        ::wglDeleteContext(handle);
+    }
+};
+
+//! ATOM deleter.
+template <> struct handle_deleter<ATOM> {
+    typedef ATOM pointer;
+
+    void operator()(ATOM id) const {
+        ::UnregisterClassW(MAKEINTATOM(id), ::GetModuleHandleW(nullptr));
+    }
+};
+
+namespace detail {
+    template <typename F>
+    struct handle_deleter_helper {
+        typedef decltype(std::declval<F>()())        value_type;
+        typedef handle_deleter<value_type>           deleter;
+        typedef std::unique_ptr<value_type, deleter> type;
+    };
+} //namespace detail 
+
+//==============================================================================
+//! Helper to delete handles for use with std::unique_ptr.
+//==============================================================================
+template <typename F>
+typename detail::handle_deleter_helper<F>::type make_unique_handle(F function) {
+    return typename detail::handle_deleter_helper<F>::type(
+        function()
+    );
+}
+
+typedef std::unique_ptr<HWND,  handle_deleter<HWND>>  unique_hwnd;
+typedef std::unique_ptr<HGLRC, handle_deleter<HGLRC>> unique_hglrc;
 
 } //namespace platform
 } //namespace bklib

@@ -8,6 +8,8 @@
 #include "pch.hpp"
 #include "window/window.hpp"
 
+namespace win = ::bklib::platform;
+
 namespace bklib { namespace detail { namespace impl {
 //------------------------------------------------------------------------------
 //! Windows specific implementation for bklib::window.
@@ -96,7 +98,9 @@ struct window_impl {
     static HWND create_window_(window_impl* window);
 
     //! The system window handle.
-    HWND handle_;
+    HWND  handle_;
+    //! The opengl context.
+    win::unique_hglrc context_;
 private:
     window_impl(window_impl const&); //= delete
     window_impl& operator=(window_impl const&); //=delete
@@ -547,14 +551,93 @@ LRESULT impl::window_impl::window_proc_(
         ::DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
+namespace {
 //------------------------------------------------------------------------------
 //! Helper function to create a window.
 //! @param window The window object which will own this HWND.
 //------------------------------------------------------------------------------
+void init_gl() {
+    static wchar_t const CLASS_NAME[] = L"dummy_window";
+    HINSTANCE const      instance     = ::GetModuleHandleW(L"");
+    UINT const           style        = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+
+    WNDCLASSEXW const window_class = {
+        sizeof(WNDCLASSEXW), //UINT      cbSize;
+        style,               //UINT      style;
+        ::DefWindowProcW,    //WNDPROC   lpfnWndProc;
+        0,                   //int       cbClsExtra;
+        0,                   //int       cbWndExtra;
+        instance,            //HINSTANCE hInstance;
+        nullptr,             //HICON     hIcon;
+        nullptr,             //HCURSOR   hCursor;
+        nullptr,             //HBRUSH    hbrBackground;
+        nullptr,             //LPCWSTR   lpszMenuName;
+        CLASS_NAME,          //LPCWSTR   lpszClassName;
+        nullptr              //HICON     hIconSm;
+    };
+
+    auto const class_atom = win::make_unique_handle([&] {
+        return ::RegisterClassExW(&window_class);
+    });
+
+    auto const window = win::make_unique_handle([&] {
+        DWORD const ex_style = 0;
+        DWORD const style    = WS_OVERLAPPEDWINDOW;
+
+        return ::CreateWindowExW(
+            ex_style,      //_In_     DWORD dwExStyle,
+            CLASS_NAME,    //_In_opt_ LPCWSTR lpClassName,
+            CLASS_NAME,    //_In_opt_ LPCWSTR lpWindowName,
+            style,         //_In_     DWORD dwStyle,
+            CW_USEDEFAULT, //_In_     int X,
+            CW_USEDEFAULT, //_In_     int Y,
+            CW_USEDEFAULT, //_In_     int nWidth,
+            CW_USEDEFAULT, //_In_     int nHeight,
+            nullptr,       //_In_opt_ HWND hWndParent,
+            nullptr,       //_In_opt_ HMENU hMenu,
+            instance,      //_In_opt_ HINSTANCE hInstance,
+            nullptr        //_In_opt_ LPVOID lpParam
+        );
+    });
+
+    HDC const dc = ::GetDC(window.get());
+
+    PIXELFORMATDESCRIPTOR pfd = {0};
+    pfd.nSize        = sizeof(PIXELFORMATDESCRIPTOR);
+    pfd.nVersion     = 1;
+    pfd.dwFlags      = PFD_SUPPORT_OPENGL;
+    pfd.iPixelType   = PFD_TYPE_RGBA;
+    pfd.cColorBits   = 24;
+    pfd.cAlphaBits   = 8;
+    pfd.cDepthBits   = 32;
+    pfd.cStencilBits = 8;
+    
+    auto const format = ::ChoosePixelFormat(dc, &pfd);
+    ::DescribePixelFormat(dc, format, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+    ::SetPixelFormat(dc, format, &pfd);
+
+    auto const context = win::make_unique_handle([&] {
+        return ::wglCreateContext(dc);
+    });
+
+    ::wglMakeCurrent(dc, context.get());
+
+    ::glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK) {
+        BK_TODO_BREAK; //! @todo throw
+    }
+
+    ::wglMakeCurrent(dc, nullptr);
+}
+} //namespace
+
 HWND impl::window_impl::create_window_(
     window_impl* window // associated window object
 ) {
-    auto const INSTANCE = ::GetModuleHandleW(L"");
+    // use glew to setup opengl
+    init_gl();
+
+    auto const instance = ::GetModuleHandleW(L"");
 
     WNDCLASSEXW const wc = {
         sizeof(WNDCLASSEXW),
@@ -562,7 +645,7 @@ HWND impl::window_impl::create_window_(
         window_impl::top_level_wnd_proc_,
         0,
         0,
-        INSTANCE,
+        instance,
         ::LoadIconW(nullptr, MAKEINTRESOURCEW(IDI_WINLOGO)),
         ::LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW)),
         nullptr,
@@ -582,11 +665,51 @@ HWND impl::window_impl::create_window_(
         CW_USEDEFAULT, CW_USEDEFAULT,
         (HWND)nullptr,
         (HMENU)nullptr,
-        INSTANCE,
+        instance,
         window
     );
 
     BK_THROW_ON_FAIL(::CreateWindowExW, result ? S_OK : E_FAIL);
+
+    HDC const dc = ::GetDC(result);
+
+    int const pf_attributes[] = {
+        WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+        WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB,     32,
+        WGL_DEPTH_BITS_ARB,     24,
+        WGL_STENCIL_BITS_ARB,   8,
+        0, // End
+    };
+
+    int  format = 0;
+    UINT count  = 0;
+    PIXELFORMATDESCRIPTOR pfd;
+
+    ::wglChoosePixelFormatARB(
+        dc, pf_attributes, nullptr, 1, &format, &count
+    );
+
+    ::DescribePixelFormat(dc, format, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+    ::SetPixelFormat(dc, format, &pfd);
+
+    int const cc_attributes[] = {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+        WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+        0, // End
+    };
+
+    window->context_ = win::make_unique_handle([&] {
+        return ::wglCreateContextAttribsARB(dc, nullptr, cc_attributes);
+    });
+    
+    ::wglMakeCurrent(dc, window->context_.get());
+
+    ::ShowWindow(result, SW_SHOWDEFAULT);
+    ::InvalidateRect(result, nullptr, FALSE);
+    ::UpdateWindow(result);
 
     return result;
 }
