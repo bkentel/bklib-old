@@ -127,16 +127,20 @@ void impl::window_impl::create()
 
     handle_ = create_window_(this);
     enable_raw_input();
+
+    ::ShowWindow(handle_, SW_SHOWDEFAULT);
+    ::InvalidateRect(handle_, nullptr, FALSE);
+    ::UpdateWindow(handle_);
 }
 
 //------------------------------------------------------------------------------
 void impl::window_impl::close() {
-    auto const result = ::DestroyWindow(handle_);
+    ::DestroyWindow(handle_); // ignore the return value
 }
 
 //------------------------------------------------------------------------------
 void impl::window_impl::show(bool visible) {
-    ::ShowWindow(handle_, SW_SHOWDEFAULT);
+    ::ShowWindow(handle_, visible ? SW_SHOW : SW_HIDE);
     ::InvalidateRect(handle_, nullptr, FALSE);
     ::UpdateWindow(handle_);
 }
@@ -185,7 +189,8 @@ namespace {
         ::SetLastError(0);
         auto const result = ::GetWindowLongPtrW(hwnd, GWLP_USERDATA);
 
-        BK_THROW_ON_FAIL(::GetWindowLongPtrW, result);
+        BK_THROW_ON_FAIL(::GetWindowLongPtrW,
+            HRESULT_FROM_WIN32(::GetLastError()));
 
         return reinterpret_cast<impl::window_impl*>(result);
     }
@@ -200,7 +205,10 @@ namespace {
         auto const result = ::SetWindowLongPtrW(hwnd, GWLP_USERDATA,
             reinterpret_cast<LONG_PTR>(ptr) );
 
-        BK_THROW_ON_FAIL(::SetWindowLongPtrW, result);
+        BK_THROW_ON_FAIL(::GetWindowLongPtrW,
+            HRESULT_FROM_WIN32(::GetLastError()));
+
+        BK_ASSERT_MSG(result == 0, "value was previously set");
     }
 } //namespace
 
@@ -212,7 +220,7 @@ namespace {
 //------------------------------------------------------------------------------
 LRESULT CALLBACK impl::window_impl::top_level_wnd_proc_(
     HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
-) try {   
+) throw() try {   
     // set the instance pointer for the window given by hwnd if it was
     // just created.
     if (msg == WM_NCCREATE) {
@@ -239,13 +247,9 @@ LRESULT CALLBACK impl::window_impl::top_level_wnd_proc_(
         return ::DefWindowProcW(hwnd, msg, wParam, lParam);
     }
 } catch (std::exception&) {
-    BK_TODO_BREAK;
-    ::PostQuitMessage(-1);
-    return 0;
+    BK_TODO_BREAK; //! @todo implement
 } catch (...) {
-    BK_TODO_BREAK;
-    ::PostQuitMessage(-1);
-    return 0;
+    BK_TODO_BREAK; //! @todo implement
 }
 
 //------------------------------------------------------------------------------
@@ -306,7 +310,7 @@ impl::window_impl::handle_message<WM_MOUSEMOVE>(WPARAM, LPARAM lParam) {
 template <>
 impl::window_impl::result_t
 impl::window_impl::handle_message<WM_CHAR>(WPARAM wParam, LPARAM) {
-    auto const code = wParam;
+    auto const code = static_cast<wchar_t>(wParam & 0xFFFF); // utf-16
 
     if (code >= 0xD800 && code <= 0xDBFF) {
         BK_TODO_BREAK;
@@ -342,14 +346,14 @@ namespace {
     struct raw_input_t {
         unsigned  code;      //<! input type
         HRAWINPUT handle;    //<! raw input handle
-        unsigned  size;      //<! size of the input data
+        UINT      size;      //<! size of the input data
         bool      has_extra; //<! extra information after the header
 
         //----------------------------------------------------------------------
         //! Get the size required for input messages.
         //! @throw platform::windows_exception
         //----------------------------------------------------------------------
-        static size_t get_input_size(HRAWINPUT handle) {
+        static UINT get_input_size(HRAWINPUT handle) {
             UINT size = 0;
             auto const result = ::GetRawInputData(
                 handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER) );
@@ -364,7 +368,9 @@ namespace {
         //! Construct from the wParam and lParam received from WM_INPUT.
         //----------------------------------------------------------------------
         raw_input_t(WPARAM wParam, LPARAM lParam)
-            : code(GET_RAWINPUT_CODE_WPARAM(wParam))
+            : code(static_cast<uint8_t>(
+                GET_RAWINPUT_CODE_WPARAM(wParam))
+            ) //per docs
             , handle(reinterpret_cast<HRAWINPUT>(lParam))
             , size(get_input_size(handle))
             , has_extra(size > sizeof(RAWINPUT))
@@ -412,9 +418,9 @@ namespace {
         explicit key_event_info(RAWKEYBOARD const& kb) {
             went_down_ = !(kb.Flags & RI_KEY_BREAK);
 
-            bool const is_e0    = kb.Flags & RI_KEY_E0;
-            bool const is_e1    = kb.Flags & RI_KEY_E1;
-            bool const is_pause = kb.VKey == VK_PAUSE;
+            bool const is_e0    = (kb.Flags & RI_KEY_E0) != 0;
+            bool const is_e1    = (kb.Flags & RI_KEY_E1) != 0;
+            bool const is_pause = (kb.VKey == VK_PAUSE);
             
             // pause is a special case... bug in the API
             scancode_ = is_pause ? 0x45 : kb.MakeCode;
@@ -436,11 +442,13 @@ namespace {
 
         std::wstring get_key_name() const {
             wchar_t name_buffer[16];
-            auto const result = ::GetKeyNameTextW(
+            auto const length = ::GetKeyNameTextW(
                 (scancode_ << 16), // per docs
                 name_buffer,
                 BK_ARRAY_ELEMENT_COUNT(name_buffer)
             );
+
+            BK_THROW_ON_COND(GetKeyNameTextW, length == 0);
 
             return std::wstring(name_buffer);
         }

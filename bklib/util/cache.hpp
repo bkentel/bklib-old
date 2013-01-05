@@ -2,8 +2,11 @@
 
 #include "pch.hpp"
 
+//! @todo refactor and comment
+
 namespace bklib {
 
+//! @todo change this
 struct cache_exception : public std::exception {
     explicit cache_exception(char const* what)
         : std::exception(what) { }
@@ -211,7 +214,7 @@ private:
             auto const index = (start_index + i) % count;
 
             if (!c_[index].obj) {
-                return index;
+                return static_cast<unsigned>(index); //! @todo double check this
             }
         }
 

@@ -18,8 +18,9 @@ public:
     flagset(storage_t value = 0) : bits_(value) {
     }
 
+    //! @todo remove the first param?
     template <typename T>
-    flagset(T flag,
+    flagset(T,
         typename std::enable_if<
             std::is_same<typename T::type, tag_t>::value &&
             std::is_same<typename T::storage, storage_t>::value

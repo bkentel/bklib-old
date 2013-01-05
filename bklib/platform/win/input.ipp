@@ -242,7 +242,11 @@ private:
 
         pages.resize(page_count, 0);
         
-        auto const hr2 = ui->GetPageIndex(pages.data(), pages.size(), &page_count);
+        auto const hr2 = ui->GetPageIndex(
+            pages.data(),
+            static_cast<UINT>(pages.size()), // stl return a size_t
+            &page_count
+        );
         BK_THROW_ON_FAIL(::ITfUIElementMgr::GetPageIndex, hr2);
     }
 
@@ -530,8 +534,6 @@ public:
     void associate(HWND window);
 
     void capture_input(bool capture) {
-        HRESULT hr = S_OK;
-
         if (capture != keystroke_feed_enabled_) {
             keystroke_feed_enabled_ = capture;
 
@@ -544,22 +546,22 @@ public:
     }
 
     void set_text(utf8string const& string) {
-        //utf8_16_converter convert;
-
         text_ = converter_.from_bytes(string);
+
+        auto const text_len = static_cast<LONG>(text_.size());
 
         TS_TEXTCHANGE const change = {
             0,
             selection_.acpEnd,
-            text_.size()
+            text_len
         };
 
         if (FAILED(advise_sink_.sink->OnTextChange(0, &change))) {
             BK_TODO_BREAK;
         }
 
-        selection_.acpStart = text_.size();
-        selection_.acpEnd   = text_.size();
+        selection_.acpStart = text_len;
+        selection_.acpEnd   = text_len;
     }
 
     void cancel_composition() {
@@ -913,9 +915,10 @@ impl::ime_manager_impl_t::OnLanguageChange(
     }
 
     std::vector<wchar_t> buffer;
-    auto const size = LCIDToLocaleName(langid, nullptr, 0, 0);
+    auto const size = ::LCIDToLocaleName(langid, nullptr, 0, 0);
     buffer.resize(size);
-    auto const result = LCIDToLocaleName(langid, buffer.data(), buffer.size(), 0);
+
+    auto const result = ::LCIDToLocaleName(langid, buffer.data(), size, 0);
     BK_THROW_ON_COND(::LCIDToLocaleName, result == 0);
 
     input_language_id_.assign(buffer.data(), buffer.data() + size);
@@ -1959,6 +1962,8 @@ impl::ime_manager_impl_t::GetWnd(
     if (nullptr == phwnd) {
         return E_INVALIDARG;
     }
+
+    BK_UNUSED_VAR(vcView); //! @todo check this
 
     *phwnd = window_;
 

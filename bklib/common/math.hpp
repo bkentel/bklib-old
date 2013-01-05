@@ -1,6 +1,16 @@
+////////////////////////////////////////////////////////////////////////////////
+//! @file
+//! @author Brandon Kentel
+//! @date   Jan 2013
+//! @brief  Defines math and geometry related functions.
+////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "pch.hpp"
+#include <cmath>
+#include <algorithm>
+#include <functional>
+
+#include "util/assert.hpp"
 
 namespace bklib { namespace math {
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,6 +275,7 @@ struct rect : public rect_base {
         return side == side_y::bottom ? bottom : top;
     }
 
+    //! not inlined by default by MSVC 2012
     __forceinline bool is_degenerate() const {
         return (left > right) || (top > bottom);
     }
@@ -301,56 +312,71 @@ T y(rect<T> const& r) { return r.get_side(Side); }
 //------------------------------------------------------------------------------
 //! Rectangle constrained by a maximum and minimum height and width.
 //------------------------------------------------------------------------------
-template <typename T>
-struct constrained_rect : public rect<T> {
-    typedef rect<T> rect_t;
+//template <typename T>
+//struct constrained_rect : public rect<T> {
+//    typedef rect<T> rect_t;
+//
+//    constrained_rect(rect_t const& r,
+//        T min_width,  T max_width,
+//        T min_height, T max_height
+//    )
+//        : rect(r)
+//        , constraint_w(min_width, max_width)
+//        , constraint_h(min_height, max_height)
+//    {
+//        check();
+//    }
+//
+//    range<T>& get_constraint(side_x) { return constraint_w; }
+//    range<T>& get_constraint(side_y) { return constraint_h; }
+//
+//    T distance(side_x) const { return width();  }
+//    T distance(side_y) const { return height(); }
+//
+//    template <typename U>
+//    T resize(U side, T delta) {
+//        auto const old_dist = distance(side);
+//        auto const new_dist = old_dist + side_sign<T>(side) * delta;
+//        auto const clamped  = get_constraint(side).clamp(new_dist);
+//        auto const change   = clamped - old_dist;
+//        
+//        get_side(side) += change;
+//        check();
+//
+//        return change;
+//    }
+//
+//    range<T> constraint_w;
+//    range<T> constraint_h;
+//};
 
-    constrained_rect(rect_t const& r,
-        T min_width,  T max_width,
-        T min_height, T max_height
-    )
-        : rect(r)
-        , constraint_w(min_width, max_width)
-        , constraint_h(min_height, max_height)
-    {
-        check();
-    }
-
-    range<T>& get_constraint(side_x) { return constraint_w; }
-    range<T>& get_constraint(side_y) { return constraint_h; }
-
-    T distance(side_x) const { return width();  }
-    T distance(side_y) const { return height(); }
-
-    template <typename U>
-    T resize(U side, T delta) {
-        auto const old_dist = distance(side);
-        auto const new_dist = old_dist + side_sign<T>(side) * delta;
-        auto const clamped  = get_constraint(side).clamp(new_dist);
-        auto const change   = clamped - old_dist;
-        
-        get_side(side) += change;
-        check();
-
-        return change;
-    }
-
-    range<T> constraint_w;
-    range<T> constraint_h;
-};
-
-
+//------------------------------------------------------------------------------
+//! intersection of the point (x, y) with the rectangle @c rect.
+//! @return
+//!     @c true if there is an intersection.
+//!     @c false otherwise.
+//------------------------------------------------------------------------------
 template <typename T>
 bool intersects(T x, T y, rect<T> const& rect) {
     return !( x < rect.left || x > rect.right  ||
               y < rect.top  || y > rect.bottom );
 }
 
+//------------------------------------------------------------------------------
+//! intersection of the point @p with the rectangle @c rect.
+//! @return
+//!     @c true if there is an intersection.
+//!     @c false otherwise.
+//------------------------------------------------------------------------------
 template <typename T>
 bool intersects(point<T, 2> const& p, rect<T> const& rect) {
     return intersects(x(p), y(p), rect);
 }
 
+//------------------------------------------------------------------------------
+//! Describes the intersection(s) (if any) with a point and the border of a
+//! rectangle.
+//------------------------------------------------------------------------------
 struct border_intersection {
     bool is_inside;
     rect_base::side_x x;
@@ -363,12 +389,18 @@ struct border_intersection {
     {
     }
 
+    //! @c true if there is at least one intersection.
     explicit operator bool() const {
         return (x != rect_base::side_x::none) ||
                (y != rect_base::side_y::none);
     }
 };
 
+//------------------------------------------------------------------------------
+//! Intersection of the point (x, y) with the border of thickness @c border_size
+//! of rectangle @c rect.
+//! @return A border_intersection pbject describing the intersection(s) if any.
+//------------------------------------------------------------------------------
 template <typename T>
 border_intersection
 intersects_border(T x, T y, rect<T> const& rect, T border_size) {
@@ -396,6 +428,11 @@ intersects_border(T x, T y, rect<T> const& rect, T border_size) {
     return result;
 }
 
+//------------------------------------------------------------------------------
+//! Intersection of the point @c p with the border of thickness @c border_size
+//! of rectangle @c rect.
+//! @return A border_intersection pbject describing the intersection(s) if any.
+//------------------------------------------------------------------------------
 template <typename T>
 border_intersection
 intersects_border(point<T, 2> const& p, rect<T> const& rect, T border_size) {

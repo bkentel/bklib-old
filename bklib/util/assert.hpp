@@ -39,6 +39,8 @@ inline void assert_impl(
     assert_info&& info,
     char const*   condition
 ) {
+    BK_UNUSED_VAR(info);
+    BK_UNUSED_VAR(condition);
 }
 
 //==============================================================================
@@ -49,8 +51,11 @@ inline void assert_msg_impl(
     assert_info&& info,
     char const*   condition,
     char const*   fmt,
-    Args&&...     args
+    Args&&...     //args
 ) {
+    BK_UNUSED_VAR(info);
+    BK_UNUSED_VAR(condition);
+    BK_UNUSED_VAR(fmt);
 }
 
 //==============================================================================

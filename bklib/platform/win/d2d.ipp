@@ -156,7 +156,8 @@ struct g2d::renderer::impl_t {
         auto const t = convert.from_bytes(text);
 
         target_->DrawTextW(
-            t.c_str(), t.size(),
+            t.c_str(),
+            static_cast<UINT32>(t.size()),
             text_format_,
             make_rect(r),
             solid_brush_.brush

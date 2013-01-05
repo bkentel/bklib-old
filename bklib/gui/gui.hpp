@@ -241,7 +241,9 @@ public:
     //--------------------------------------------------------------------------
     virtual void on_input_char(utf32codepoint codepoint);
     //--------------------------------------------------------------------------
-    virtual void on_input_update_composition(range_list&& ranges) { }
+    virtual void on_input_update_composition(
+        range_list&& //ranges
+    ) { }
     virtual void on_input_begin_composition() { }
     virtual void on_input_end_composition() { }
     //--------------------------------------------------------------------------

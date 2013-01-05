@@ -142,7 +142,9 @@ gui::gui_state::ime_set_text(bklib::utf8string const& string) {
 ////////////////////////////////////////////////////////////////////////////////
 // parent_base_t
 ////////////////////////////////////////////////////////////////////////////////
-gui::parent_base_t::parent_base_t(size_t reserve) {
+gui::parent_base_t::parent_base_t(
+    size_t //reserve
+) {
 }
 
 gui::parent_base_t::handle_t gui::parent_base_t::add_child(unique_t child) {
@@ -243,7 +245,9 @@ bool gui::widget_base_t::hit_test(point p) const {
     return math::intersects(p, get_bounding_rect());
 }
 
-void gui::widget_base_t::draw(renderer_t& renderer) const {
+void gui::widget_base_t::draw(
+    renderer_t& //renderer
+) const {
 }
 
 void gui::widget_base_t::on_mouse_enter() {
@@ -417,7 +421,10 @@ gui::root::unique_t gui::root::remove_child(handle_t handle) {
     return result;
 }
 
-void gui::root::on_mouse_move(int dx, int dy) {
+void gui::root::on_mouse_move(
+      int //dx
+    , int //dy
+) {
 }
 
 BK_UTIL_CALLBACK_DEFINE_IMPL(gui::root, on_update) {
@@ -541,10 +548,14 @@ void gui::root::on_mouse_up(unsigned button) {
     (*it)->on_mouse_up(button);
 }
 
-void gui::root::on_key_up(key_code_t key) {
+void gui::root::on_key_up(
+    key_code_t //key
+) {
 }
 
-void gui::root::on_key_down(key_code_t key) {
+void gui::root::on_key_down(
+    key_code_t //key
+) {
 }
 
 void gui::root::on_input_char(bklib::utf32codepoint codepoint) {
@@ -727,7 +738,12 @@ void gui::window::on_mouse_up(unsigned button) {
     gui_state_->redraw();
 }
 
-void gui::window::on_mouse_move(unsigned x, unsigned y, signed dx, signed dy) {
+void gui::window::on_mouse_move(
+      unsigned x
+    , unsigned y
+    , signed   //dx
+    , signed   //dy
+) {
     BK_ASSERT_MSG(gui_state_ != nullptr, "GUI state not set.");
 
     auto const old_x   = gui_state_->mouse_x();
@@ -788,6 +804,9 @@ void gui::window::resize(scalar_t dw, scalar_t dh, side_x sx, side_y sy) {
         r.resize_constrained(sizing_info_.x, dw, width_constraint_);
     auto const delta_h = (sy == side_y::none) ? 0 :
         r.resize_constrained(sizing_info_.y, dh, height_constraint_);
+
+    BK_UNUSED_VAR(delta_w);
+    BK_UNUSED_VAR(delta_h);
 
     client_rect_ = compute_client_rect_();
 
@@ -889,14 +908,16 @@ void gui::input::on_input_update_composition(
         temp
     );
 
-    composition_end_ = text_.size();
+    composition_end_ = static_cast<unsigned>(text_.size());
 
     gui_state_->redraw();
 }
 
 void gui::input::on_input_begin_composition() {
-    composition_start_ = text_.size();
-    composition_end_   = text_.size();
+    auto const pos = static_cast<unsigned>(text_.size());
+    
+    composition_start_ = pos;
+    composition_end_   = pos;
 }
 
 void gui::input::on_input_end_composition() {
