@@ -12,6 +12,25 @@
 
 namespace bklib {
 
+//==============================================================================
+//! Return the value of an enumeration as its underlying type.
+//! @todo move to another header.
+//==============================================================================
+template <typename T, T E>
+struct enum_value {
+    static auto const value = static_cast<
+        typename std::underlying_type<T>::type>(E);
+};
+//==============================================================================
+//! Return the value of an enumeration as its underlying type.
+//! @todo move to another header.
+//==============================================================================
+template <typename T>
+inline typename std::underlying_type<T>::type get_enum_value(T e) {
+    return static_cast<
+        typename std::underlying_type<T>::type>(e);
+};
+
 
 template <typename T, typename... Args>
 void safe_callback(T&& callback, Args&&... args) {

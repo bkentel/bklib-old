@@ -162,11 +162,11 @@ struct candidate_list {
     {
     }
 
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //! Get an ITfCandidateListUIElement from @c manager, otherwise fail.
     //! @param id Obtained from one of the callbacks from @c ITfUIElementSink
     //! @throw platform::windows_exception
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     candidate_list(ITfUIElementMgr& manager, DWORD id) : candidate_list(id) {
         ui = win::make_com_ptr([&](ITfCandidateListUIElement** out) {
             auto const hr = win::make_com_ptr([&](ITfUIElement** out) {
@@ -179,11 +179,11 @@ struct candidate_list {
         });
     }
 
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //! Update based on the @c flags from @c ITfCandidateListUIElement.
     //! @return The update flags.
     //! @throw platform::windows_exception
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     DWORD update() {
         DWORD flags = 0;
         auto const hr = ui->GetUpdatedFlags(&flags);
@@ -231,10 +231,10 @@ struct candidate_list {
     std::vector<std::wstring> strings;
     std::vector<UINT>         pages;
 private:
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //! Retrieve the list of page sizes.
     //! @throw platform::windows_exception
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     void get_pages_() {
         UINT page_count = 0;
         auto const hr1 = ui->GetPageIndex(nullptr, 0, &page_count);
@@ -250,10 +250,10 @@ private:
         BK_THROW_ON_FAIL(::ITfUIElementMgr::GetPageIndex, hr2);
     }
 
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //! Retrieve the list of candidate strings.
     //! @throw platform::windows_exception
-    //------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     void get_strings_() {
         strings.reserve(count);
 

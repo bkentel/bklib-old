@@ -161,6 +161,7 @@
     <ClInclude Include="config.hpp" />
     <ClInclude Include="exception.hpp" />
     <ClInclude Include="gfx\gfx.hpp" />
+    <ClInclude Include="gfx\gl.hpp" />
     <ClInclude Include="gfx\renderer\renderer2d\renderer2d.hpp" />
     <ClInclude Include="gfx\targa.hpp" />
     <ClInclude Include="gui\gui.hpp" />
@@ -188,6 +189,7 @@
     <ClInclude Include="platform\win\window.ipp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="gfx\gl.cpp" />
     <ClCompile Include="gfx\renderer\renderer2d\renderer2d.cpp" />
     <ClCompile Include="gfx\targa.cpp" />
     <ClCompile Include="gui\gui.cpp" />
