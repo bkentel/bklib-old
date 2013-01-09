@@ -98,9 +98,18 @@ struct window_impl {
     static HWND create_window_(window_impl* window);
 
     //! The system window handle.
-    HWND  handle_;
+    HWND handle_;
+    HDC  dc_;
     //! The opengl context.
     win::unique_hglrc context_;
+
+    void activate_gl() {
+        ::wglMakeCurrent(dc_, context_.get());
+    }
+
+    void swap_buffers() {
+        ::SwapBuffers(dc_);
+    }
 private:
     window_impl(window_impl const&); //= delete
     window_impl& operator=(window_impl const&); //=delete
@@ -542,6 +551,7 @@ LRESULT impl::window_impl::window_proc_(
     BK_HANDLE_MESSAGE_CASE(WM_INPUT);
     BK_HANDLE_MESSAGE_CASE(WM_MOUSEMOVE);
     BK_HANDLE_MESSAGE_CASE(WM_CHAR);
+    case WM_ERASEBKGND : return TRUE; //! @todo make a proper handler
     }
 
     #undef BK_HANDLE_MESSAGE_CASE
@@ -672,6 +682,7 @@ HWND impl::window_impl::create_window_(
     BK_THROW_ON_FAIL(::CreateWindowExW, result ? S_OK : E_FAIL);
 
     HDC const dc = ::GetDC(result);
+    window->dc_ = dc;
 
     int const pf_attributes[] = {
         WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
@@ -704,12 +715,10 @@ HWND impl::window_impl::create_window_(
     window->context_ = win::make_unique_handle([&] {
         return ::wglCreateContextAttribsARB(dc, nullptr, cc_attributes);
     });
-    
-    ::wglMakeCurrent(dc, window->context_.get());
 
-    ::ShowWindow(result, SW_SHOWDEFAULT);
-    ::InvalidateRect(result, nullptr, FALSE);
-    ::UpdateWindow(result);
+    //::ShowWindow(result, SW_SHOWDEFAULT);
+    //::InvalidateRect(result, nullptr, FALSE);
+    //::UpdateWindow(result);
 
     return result;
 }

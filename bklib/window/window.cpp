@@ -6,6 +6,7 @@
 
 #include "platform/win/window.ipp"
 
+
 //------------------------------------------------------------------------------
 //! Windows implementation of bklib::window.
 //------------------------------------------------------------------------------
@@ -22,27 +23,29 @@ struct bklib::window::impl_t
         : window_impl()
         , running_(true)
     {
-        thread_ = std::make_unique<std::thread>([&] {
-            try {
-                create();
+        thread_ = std::make_unique<std::thread>([&] { main(finished, win); });
+    }
 
-                auto input_manager = std::make_shared<bklib::input::ime::manager>();
-                input_manager->associate(win);
+    void main(promise_t& finished, bklib::window& win) {
+        try {
+            create();
 
-                finished.set_value(input_manager);
+            auto input_manager = std::make_shared<bklib::input::ime::manager>();
+            input_manager->associate(win);
+
+            finished.set_value(input_manager);
                 
-                do {
-                    while (do_input_message()) {}
-                    input_manager->run();
-                } while (running_ && do_event_wait());
-            } catch (bklib::exception_base&) {
-                BK_TODO_BREAK;
-            } catch (std::exception&) {
-                BK_TODO_BREAK;
-            } catch (...) {
-                BK_TODO_BREAK;
-            }
-        });
+            do {
+                while (do_input_message()) {}
+                input_manager->run();
+            } while (running_ && do_event_wait());
+        } catch (bklib::exception_base&) {
+            BK_TODO_BREAK;
+        } catch (std::exception&) {
+            BK_TODO_BREAK;
+        } catch (...) {
+            BK_TODO_BREAK;
+        }
     }
 
     template <typename T>
@@ -82,6 +85,14 @@ bklib::window::window(promise_t& finished)
 
 bklib::window::~window()
 {
+}
+
+void bklib::window::activate_gl() {
+    impl_->activate_gl();
+};
+
+void bklib::window::swap_buffers() {
+    impl_->swap_buffers();
 }
 
 void

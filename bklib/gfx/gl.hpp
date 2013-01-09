@@ -375,7 +375,8 @@ namespace buffer {
         static auto const elements = enum_value<buffer::size, Size>::value;
         static auto const size     = traits::size * elements;
         
-        typedef std::array<typename traits::type, elements> type;
+        typedef typename traits::type              element_type;
+        typedef std::array<element_type, elements> type;
     };
 
     namespace detail {
@@ -451,13 +452,13 @@ namespace buffer {
     //==========================================================================
     template <typename T, typename... Types>
     struct data_traits_set
-        : public detail::data_traits_set_base <std::tuple<T, Types...>>
+        : public detail::data_traits_set_base<std::tuple<T, Types...>>
     {
     };
     //! Base case.
     template <typename T>
     struct data_traits_set<T>
-        : public detail::data_traits_set_base <std::tuple<T>>
+        : public detail::data_traits_set_base<std::tuple<T>>
     {
     };
 } // namespace buffer
@@ -627,15 +628,23 @@ public:
 
     void bind() {
         ::glBindBuffer(target_, id_.value);
+        BK_GL_CHECK_ERROR;
     };
 
     void unbind() {
         ::glBindBuffer(target_, 0);
+        BK_GL_CHECK_ERROR;
     };
 
     void buffer(size_t size, void const* data, buffer::usage usage) {
         ::glBufferData(target_, size, data, get_enum_value(usage));
+        BK_GL_CHECK_ERROR;
     };
+
+    void buffer(size_t offset, size_t size, void const* data) {
+        ::glBufferSubData(target_, offset, size, data);
+        BK_GL_CHECK_ERROR;
+    }
 private:
     id::buffer id_;
 };

@@ -67,6 +67,9 @@ public:
     //! Returns the underlying window handle.
     handle_t handle() const;
 
+    void activate_gl();
+    void swap_buffers();
+
     //--------------------------------------------------------------------------
     BK_UTIL_CALLBACK_BEGIN;
         //----------------------------------------------------------------------

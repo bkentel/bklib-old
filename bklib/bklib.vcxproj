@@ -162,9 +162,8 @@
     <ClInclude Include="exception.hpp" />
     <ClInclude Include="gfx\gfx.hpp" />
     <ClInclude Include="gfx\gl.hpp" />
-    <ClInclude Include="gfx\renderer\renderer2d\renderer2d.hpp" />
+    <ClInclude Include="gfx\renderer2d.hpp" />
     <ClInclude Include="gfx\targa.hpp" />
-    <ClInclude Include="gui\gui.hpp" />
     <ClInclude Include="input\input.hpp" />
     <ClInclude Include="log\log.hpp" />
     <ClInclude Include="pch.hpp" />
@@ -179,6 +178,7 @@
     <ClInclude Include="util\flagset.hpp" />
     <ClInclude Include="util\macros.hpp" />
     <ClInclude Include="util\make_unique.hpp" />
+    <ClInclude Include="util\pool_allocator.hpp" />
     <ClInclude Include="util\scope_exit.hpp" />
     <ClInclude Include="util\stringize.hpp" />
     <ClInclude Include="util\traits.hpp" />
@@ -190,9 +190,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gfx\gl.cpp" />
-    <ClCompile Include="gfx\renderer\renderer2d\renderer2d.cpp" />
+    <ClCompile Include="gfx\renderer2d.cpp" />
     <ClCompile Include="gfx\targa.cpp" />
-    <ClCompile Include="gui\gui.cpp" />
     <ClCompile Include="input\input.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pch.cpp">
@@ -201,6 +200,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="util\pool_allocator.cpp" />
     <ClCompile Include="util\stringize.cpp" />
     <ClCompile Include="window\window.cpp" />
   </ItemGroup>

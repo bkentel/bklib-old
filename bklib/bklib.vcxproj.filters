@@ -18,16 +18,10 @@
     <ClInclude Include="common\math.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gfx\renderer\renderer2d\renderer2d.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="gfx\gfx.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gfx\targa.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\gui.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="input\input.hpp">
@@ -99,15 +93,15 @@
     <ClInclude Include="gfx\gl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gfx\renderer2d.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\pool_allocator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gfx\renderer\renderer2d\renderer2d.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="gfx\targa.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gui\gui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="input\input.cpp">
@@ -126,6 +120,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gfx\gl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gfx\renderer2d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\pool_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
