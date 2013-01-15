@@ -46,7 +46,7 @@ void gl::shader::compile() {
     std::unique_ptr<GLchar[]> buffer(new GLchar[len]);
     GLsizei result = 0;
 
-    if (result != 0) {
+    if (len != 0) {
         ::glGetShaderInfoLog(id_.value, len, &result, buffer.get());
         OutputDebugStringA(buffer.get());
     }
@@ -79,7 +79,7 @@ void gl::program::link() {
     std::unique_ptr<GLchar[]> buffer(new GLchar[len]);
     GLsizei result = 0;
 
-    if (result != 0) {
+    if (len != 0) {
         ::glGetProgramInfoLog(id_.value, len, &result, buffer.get()); 
         ::OutputDebugStringA(buffer.get());
     }

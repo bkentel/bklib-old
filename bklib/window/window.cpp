@@ -91,6 +91,10 @@ void bklib::window::activate_gl() {
     impl_->activate_gl();
 };
 
+void bklib::window::deactivate_gl() {
+    impl_->deactivate_gl();
+};
+
 void bklib::window::swap_buffers() {
     impl_->swap_buffers();
 }

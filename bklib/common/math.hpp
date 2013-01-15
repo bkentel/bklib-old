@@ -205,6 +205,8 @@ struct rect_base {
 //------------------------------------------------------------------------------
 template <typename T>
 struct rect : public rect_base {
+    typedef T value_type;
+
     void resize(side_x side, T dx) {        
         get_side(side) += side_sign<T>(side) * dx;
         check();
@@ -370,7 +372,8 @@ bool intersects(T x, T y, rect<T> const& rect) {
 //------------------------------------------------------------------------------
 template <typename T>
 bool intersects(point<T, 2> const& p, rect<T> const& rect) {
-    return intersects(x(p), y(p), rect);
+    auto const result = intersects(x(p), y(p), rect);
+    return result;
 }
 
 //------------------------------------------------------------------------------

@@ -7,6 +7,10 @@
 
 //#include "gfx/targa.hpp"
 
+#include "util/blocking_queue.hpp"
+
+#include "gui/gui2.hpp"
+
 template <size_t N, typename tag_t, typename storage_t = unsigned>
 struct color_component {
     static size_t const bits = N;
@@ -117,6 +121,7 @@ void convert<tga_24, bgra8> (
 
 ////////////////////////////////////////////////////////////////////////////////
 #include "gfx/renderer2d.hpp"
+#include "gfx/gfx.hpp"
 
 int main(int argc, char const* argv[]) {
     using namespace bklib;
@@ -126,61 +131,85 @@ int main(int argc, char const* argv[]) {
     auto ime_manager = is_created.get_future().get();
 
     win.activate_gl();
-    win.show();
+    gfx::renderer2d gui_renderer;
 
-    gfx::renderer2d renderer2d;
+    gui::root root(gui_renderer);
 
     //--------------------------------------------------------------------------
     // event handlers
     //--------------------------------------------------------------------------
+    win.listen<window::event_on_mouse_move_to>([&](signed x, signed y) {
+        root.on_mouse_move_to(x, y);
+    });
+    //--------------------------------------------------------------------------
+    win.listen<window::event_on_mouse_down>([&](unsigned button) {
+        root.on_mouse_down(button);
+    });
+    //--------------------------------------------------------------------------
+    win.listen<window::event_on_mouse_up>([&](unsigned button) {
+        root.on_mouse_up(button);
+    });
+    //--------------------------------------------------------------------------
+    unsigned window_w = 0;
+    unsigned window_h = 0;
+    win.listen<window::event_on_size>([&](unsigned w, unsigned h) {
+        window_w = w;
+        window_h = h;
+    });
+    //--------------------------------------------------------------------------
     bool quit_flag = false;
     win.listen<window::event_on_close>([&] {
+        win.deactivate_gl();
         win.close();
         quit_flag = true;
     });
     //--------------------------------------------------------------------------
 
-    glm::mat4 mat_model      = glm::mat4(1.0f);
-    glm::mat4 mat_view       = glm::mat4(1.0f);
-    glm::mat4 mat_projection = glm::ortho(0.0f, 1680.0f, 1050.0f, 0.0f);
-    glm::mat4 mvp            = mat_projection * mat_view * mat_model;
-          
-    gl::program program;
-    gl::shader  vert_shader(gl::shader_type::vertex,   L"../data/shaders/gui.vert");
-    gl::shader  frag_shader(gl::shader_type::fragment, L"../data/shaders/gui.frag");
+    //for (unsigned x = 20; x < 800; x += 28) {
+    //    for (unsigned y = 20; y < 800; y += 28) {
+    //        auto win0 = root.make_widget<gui::window>(
+    //            gui::rect(gui::point(x - 10, y - 10), 100, 100)
+    //        );
 
-    vert_shader.compile();
-    program.attach(vert_shader);
+    //        root.add_widget(std::move(win0));
+    //    }
+    //}
+    
+    auto win0 = root.make_widget<gui::window>(
+        gui::rect(gui::point(10, 10), 640, 480)
+    );
+    auto win1 = root.make_widget<gui::window>(
+        gui::rect(gui::point(100, 100), 640, 480)
+    );
+    auto win2 = root.make_widget<gui::window>(
+        gui::rect(gui::point(200, 200), 640, 480)
+    );
 
-    frag_shader.compile();
-    program.attach(frag_shader);
+    root.add_widget(std::move(win0));
+    root.add_widget(std::move(win1));
+    root.add_widget(std::move(win2));
 
-    program.link();
-
-    program.use();
-        
-    gl::id::uniform mvp_loc = program.get_uniform_location("mvp");        
-    program.set_uniform(mvp_loc, mvp);
-
-    gfx::renderer2d::rect rect(10, 10, 110, 110);
-    gfx::renderer2d::color c0 = { 255, 0, 0, 255 };
-    gfx::renderer2d::color c1 = { 0, 255, 0, 255 };
-    gfx::renderer2d::color c2 = { 0, 0, 255, 255 };
-    gfx::renderer2d::color c3 = { 255, 255, 0, 255 };
-
-    auto const rect0 = renderer2d.create_rect(rect, c0, c1, c2, c3);
-
-    while (!quit_flag) {
-        win.do_pending_events();
-        ime_manager->do_pending_events();
-        //Sleep(1);
+    auto const render_function = [&] {
+        gui_renderer.set_viewport(window_w, window_h);
 
         ::glClearColor(0.5f, 0.0f, 0.0f, 1.0f);
         ::glClear(GL_COLOR_BUFFER_BIT);
         
-        renderer2d.draw_rect(rect0);
+        root.draw();
 
         win.swap_buffers();
+    };
+
+    win.show();
+
+    while (!quit_flag) {
+        win.do_pending_events();
+        ime_manager->do_pending_events();
+        Sleep(1);
+
+        if (quit_flag) break;
+        
+        render_function();
     }
 
     win.wait();

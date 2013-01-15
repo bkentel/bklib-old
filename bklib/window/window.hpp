@@ -68,6 +68,8 @@ public:
     handle_t handle() const;
 
     void activate_gl();
+    void deactivate_gl();
+
     void swap_buffers();
 
     //--------------------------------------------------------------------------

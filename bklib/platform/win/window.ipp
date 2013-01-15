@@ -107,6 +107,10 @@ struct window_impl {
         ::wglMakeCurrent(dc_, context_.get());
     }
 
+    void deactivate_gl() {
+        ::wglMakeCurrent(dc_, 0);
+    }
+
     void swap_buffers() {
         ::SwapBuffers(dc_);
     }

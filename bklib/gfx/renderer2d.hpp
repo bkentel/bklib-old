@@ -1,8 +1,9 @@
 #pragma once
 
-#include <gfx/gl.hpp>
-#include <util/pool_allocator.hpp>
-#include <common/math.hpp>
+#include "gfx/gfx.hpp"
+#include "gfx/gl.hpp"
+#include "util/pool_allocator.hpp"
+#include "common/math.hpp"
 
 namespace bklib {
 
@@ -31,6 +32,18 @@ public:
         buffer_.buffer(element * sizeof(T), sizeof(T), &value);
     }
     
+    template <uintptr_t Offset, typename U>
+    void update(size_t element, U const& value,
+        typename std::enable_if<
+            !std::is_same<T, U>::value
+        >::type* = nullptr
+    ) {
+        static_assert(Offset + sizeof(value) < sizeof(T), "out of range");
+
+        buffer_.bind();
+        buffer_.buffer(element * sizeof(T) + Offset, sizeof(U), &value);
+    }
+
     void bind() {
         buffer_.bind();
     }
@@ -65,10 +78,10 @@ struct rect_vertex {
         gl::buffer::type::byte_u
     > color_data;
     //--------------------------------------------------------------------------
-    // (u, v) texture coordinates.
+    // (s, t, corner_t, 0) texture coordinates.
     //--------------------------------------------------------------------------
     typedef gl::buffer::data_traits<
-        gl::buffer::size::size_2,
+        gl::buffer::size::size_4,
         gl::buffer::type::short_u
     > tex_coord_data;
     //--------------------------------------------------------------------------
@@ -78,6 +91,13 @@ struct rect_vertex {
         gl::buffer::size::size_4,
         gl::buffer::type::short_u
     > dimensions_data;
+
+    enum class attribute {
+        position,
+        color,
+        tex_coord,
+        dimensions,
+    };
 
     typedef gl::buffer::data_traits_set<
         position_data,
@@ -99,18 +119,6 @@ struct rect_vertex {
     dimensions_t::type dimensions;
 };
 
-template <typename T = uint8_t>
-struct color {
-    T r, g, b, a;
-};
-
-struct color32 {
-    union {
-        color<uint8_t> c;
-        uint32_t       value;
-    };
-};
-
 //==============================================================================
 //! 
 //==============================================================================
@@ -123,7 +131,10 @@ struct color32 {
 struct rect_data {
     typedef rect_vertex                                      vertex;
     typedef math::rect<vertex::position_data::element_type>  rect;
-    typedef color<vertex::color_data::element_type>          color;
+    typedef color<
+        vertex::color_data::element_type,
+        vertex::color_data::elements
+    >          color;
     typedef math::rect<vertex::tex_coord_data::element_type> tex_rect;
 
     static size_t const vertex_count = 4;
@@ -132,30 +143,56 @@ struct rect_data {
     static color    const default_color;
     static tex_rect const default_tex_coord;
 
-    enum class corner {
+    enum class corner : size_t {
         top_left      = 3,
         top_right     = 1,
         bottom_left   = 2,
         bottom_right  = 0,
     };
 
-    template <corner C>
-    void set_vertex(color c) {
-        static auto const i = static_cast<size_t>(C);
-        auto& v = vertices[i];
+    enum class corner_type {
+        sharp, round
+    };
 
-        v.color[0] = c.r;
-        v.color[1] = c.g;
-        v.color[2] = c.b;
-        v.color[3] = c.a;
+    vertex& get_corner_(corner c) {
+        auto const i = static_cast<std::underlying_type<corner>::type>(c);
+        return vertices[i];
+    }
+
+    template <corner C>
+    void set_color(color c) {
+        auto& v = get_corner_(C);
+
+        v.color[0] = gfx::r(c);
+        v.color[1] = gfx::g(c);
+        v.color[2] = gfx::b(c);
+        v.color[3] = gfx::a(c);
+    }
+
+    void set_color(color c) {
+        set_color<corner::bottom_right>(c);
+        set_color<corner::top_right>(c);
+        set_color<corner::bottom_left>(c);
+        set_color<corner::top_left>(c);
+    }
+
+    template <corner C>
+    void set_corner_type(corner_type type) {
+        auto& v = get_corner_(C);
+        v.tex_coord[2] = (type == corner_type::sharp ? 0 : 1);
+    }
+
+    void set_corner_type(corner_type type) {
+        set_corner_type<corner::bottom_right>(type);
+        set_corner_type<corner::top_right>(type);
+        set_corner_type<corner::bottom_left>(type);
+        set_corner_type<corner::top_left>(type);
     }
         
-    template <corner C>
-    void set_vertex(rect r);
+    template <corner C> void set_position(rect r);
 
-    template <> void set_vertex<corner::top_left>(rect r) {
-        static auto const i = static_cast<size_t>(corner::top_left);
-        auto& v = vertices[i];
+    template <> void set_position<corner::top_left>(rect r) {
+        auto& v = get_corner_(corner::top_left);
 
         v.position[0] = r.left;
         v.position[1] = r.top;     
@@ -166,9 +203,8 @@ struct rect_data {
         v.dimensions[3] = 0;        
     }
 
-    template <> void set_vertex<corner::top_right>(rect r) {
-        static auto const i = static_cast<size_t>(corner::top_right);
-        auto& v = vertices[i];
+    template <> void set_position<corner::top_right>(rect r) {
+        auto& v = get_corner_(corner::top_right);
 
         v.position[0] = r.right;
         v.position[1] = r.top;
@@ -179,9 +215,8 @@ struct rect_data {
         v.dimensions[3] = 0;       
     }
 
-    template <> void set_vertex<corner::bottom_left>(rect r) {
-        static auto const i = static_cast<size_t>(corner::bottom_left);
-        auto& v = vertices[i];
+    template <> void set_position<corner::bottom_left>(rect r) {
+        auto& v = get_corner_(corner::bottom_left);
 
         v.position[0] = r.left;
         v.position[1] = r.bottom;
@@ -192,9 +227,8 @@ struct rect_data {
         v.dimensions[3] = r.height();
     }
 
-    template <> void set_vertex<corner::bottom_right>(rect r) {
-        static auto const i = static_cast<size_t>(corner::bottom_right);
-        auto& v = vertices[i];
+    template <> void set_position<corner::bottom_right>(rect r) {
+        auto& v = get_corner_(corner::bottom_right);
 
         v.position[0] = r.right;
         v.position[1] = r.bottom;
@@ -205,18 +239,42 @@ struct rect_data {
         v.dimensions[3] = r.height();
     }
 
-    rect_data(rect r, color c0, color c1, color c2, color c3) {
-        set_vertex<corner::bottom_right>(r);
-        set_vertex<corner::bottom_right>(c0);
+    explicit rect_data(rect r) {
+        set_position<corner::bottom_right>(r);
+        set_position<corner::top_right>(r);
+        set_position<corner::bottom_left>(r);
+        set_position<corner::top_left>(r);
+    }
 
-        set_vertex<corner::top_right>(r);
-        set_vertex<corner::top_right>(c1);
+    //explicit
+    //rect_data( rect r,
+    //           color       tl_color        = default_color,
+    //           corner_type tl_corner_style = corner_type::round,
+    //           color       tr_color        = default_color,
+    //           corner_type tr_corner_style = corner_type::round,
+    //           color       bl_color        = default_color,
+    //           corner_type bl_corner_style = corner_type::round,
+    //           color       br_color        = default_color,
+    //           corner_type br_corner_style = corner_type::round
+    //) {
+    //    set_position<corner::bottom_right>(r);
+    //    set_color<corner::bottom_right>(tl_color);
+    //    set_corner_type<corner::bottom_right>(tl_corner_style);
 
-        set_vertex<corner::bottom_left>(r);
-        set_vertex<corner::bottom_left>(c2);
+    //    set_position<corner::top_right>(r);
+    //    set_color<corner::top_right>(tr_color);
+    //    set_corner_type<corner::top_right>(tr_corner_style);
 
-        set_vertex<corner::top_left>(r);
-        set_vertex<corner::top_left>(c3);
+    //    set_position<corner::bottom_left>(r);
+    //    set_color<corner::bottom_left>(bl_color);
+    //    set_corner_type<corner::bottom_left>(bl_corner_style);
+
+    //    set_position<corner::top_left>(r);
+    //    set_color<corner::top_left>(br_color);
+    //    set_corner_type<corner::top_left>(br_corner_style);
+    //}
+
+    rect_data() {
     }
 
     std::array<vertex, vertex_count> vertices;
@@ -236,10 +294,25 @@ public:
 
     typedef pool_allocator_base::allocation handle;
 
-    typedef rect_data::rect  rect;
-    typedef rect_data::color color;
+    typedef rect_data::rect   rect;
+    typedef rect_data::color  color;
+    typedef rect_data::corner corner;
+
+    typedef rect_data rect_info;
 
     renderer2d();
+
+    void begin_draw() {
+        program_.use();
+    }
+
+    void end_draw() {
+
+    }
+
+    handle create_rect(rect_info const& info) {
+        return rects_.alloc(info);
+    }
 
     handle create_rect(
         rect_data::rect     rect,
@@ -250,43 +323,58 @@ public:
         rect_data::tex_rect tex = rect_data::default_tex_coord
     ) {
         return rects_.alloc(
-            rect_data(rect, c0, c1, c2, c3)
+            rect_data(rect)
         );
     }
 
-    void update_rect() {
+    void update_rect(handle h, rect r) {
+        rect_data const data(r);
+        
+        static auto const offset = rect_data::vertex::position_t::offset;
+        static auto const stride = rect_data::vertex::position_t::stride;
+
+        rects_.update<0 * stride + offset>(h, data.vertices[0].position);
+        rects_.update<1 * stride + offset>(h, data.vertices[1].position);
+        rects_.update<2 * stride + offset>(h, data.vertices[2].position);
+        rects_.update<3 * stride + offset>(h, data.vertices[3].position);
     }
 
-    void draw_rect(handle rect) {
-        gl::id::attribute position(0);
-        gl::id::attribute color(1);
-        gl::id::attribute tex_coord(2);
-        gl::id::attribute dimensions(3);
+    template <corner C>
+    void update_rect(handle h, color c) {
+        rect_data data;
+        data.set_vertex<C>(c);
+        
+        static auto const offset = rect_data::vertex::color_t::offset;
+        static auto const stride = rect_data::vertex::color_t::stride;
 
+        static auto const i = static_cast<size_t>(C);
+
+        rects_.update<i * stride + offset>(h, data.vertices[i].color);
+    }
+
+    void draw_rect(handle rect) const {
         auto const i = rects_.block_index(rect);
 
         rect_array_.bind();
         
-        rects_.buffer().bind();
-
-        rect_array_.enable_attribute(position);
-        rect_array_.enable_attribute(color);
-        rect_array_.enable_attribute(dimensions);
-
-        rect_array_.set_attribute_pointer<rect_data::vertex::position_t>(position);
-        rect_array_.set_attribute_pointer<rect_data::vertex::color_t>(color);
-        rect_array_.set_attribute_pointer<rect_data::vertex::dimensions_t>(dimensions);
-
         ::glDrawArrays(
             GL_TRIANGLE_STRIP, i*4, 4
         );
-
-        rect_array_.disable_attribute(position);
-        rect_array_.disable_attribute(color);
-        rect_array_.disable_attribute(dimensions);
     }
 
+    void set_viewport(unsigned w, unsigned h);
 private:
+    glm::mat4 model_mat_;
+    glm::mat4 view_mat_;
+    glm::mat4 proj_mat_;
+    glm::mat4 mvp_mat_;
+
+    gl::id::uniform mvp_loc_;
+
+    gl::program program_;
+    gl::shader  vert_shader_;
+    gl::shader  frag_shader_;
+
     gl::vertex_array rect_array_;
     pool_allocator<rect_data, gl_buffer<rect_data>> rects_;
 }; //renderer2d

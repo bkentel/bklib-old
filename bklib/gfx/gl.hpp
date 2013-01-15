@@ -38,7 +38,7 @@ struct identifier {
     typedef Tag     tag;
     typedef Storage type;
 
-    explicit identifier(type value) : value(value) {}
+    explicit identifier(type value = 0) : value(value) {}
 
     type value;
 };
@@ -52,7 +52,7 @@ namespace id {
     typedef identifier<struct tag_vertex_array> vertex_array;
     typedef identifier<struct tag_buffer>       buffer;
     typedef identifier<struct tag_attribute>    attribute;
-    typedef identifier<struct tag_attribute>    uniform;
+    typedef identifier<struct tag_uniform>      uniform;
     typedef identifier<struct tag_texture>      texture;
 } // namespace id
 
@@ -574,11 +574,11 @@ public:
     {
     }
 
-    void bind() {
+    void bind() const {
         ::glBindVertexArray(id_.value);
     }
 
-    void unbind() {
+    void unbind() const {
         ::glBindVertexArray(0);
     }
 

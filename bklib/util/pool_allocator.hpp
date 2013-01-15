@@ -138,6 +138,16 @@ public:
         data_.update(get_allocation_index_(where), value);
     }
 
+    template <uintptr_t Offset, typename U>
+    void update(allocation where, U const& value,
+        typename std::enable_if<
+            !std::is_same<T, U>::value
+        >::type* = nullptr
+    ) {
+        static_assert(Offset + sizeof(value) < sizeof(T), "out of range");
+        data_.update<Offset>(get_allocation_index_(where), value);
+    }
+
     index_t block_index(allocation where) const {
         return get_allocation_index_(where);
     }

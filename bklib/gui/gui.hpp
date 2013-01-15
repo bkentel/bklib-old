@@ -1,21 +1,24 @@
 #pragma once
 
-#include "gfx/renderer/renderer2d/renderer2d.hpp"
 #include "common/math.hpp"
 #include "input/input.hpp"
 #include "util/cache.hpp"
 #include "util/callback.hpp"
 #include "util/flagset.hpp"
+#include "window/window.hpp"
 
-namespace bklib { namespace gui {
+#include "gfx/renderer2d.hpp"
 
-typedef float                    scalar_t;
-typedef math::rect<scalar_t>     rect;
-typedef math::point<scalar_t, 2> point;
-typedef math::range<scalar_t>    range;
+namespace bklib {
+namespace gui {
 
-typedef gfx2d::color      color;
-typedef gfx2d::renderer   renderer_t;
+typedef int16_t                  scalar_t;
+typedef math::rect<scalar_t>     rect_t;
+typedef math::point<scalar_t, 2> point_t;
+typedef math::range<scalar_t>    range_t;
+
+typedef gfx::color<uint8_t, 4>   color_t;
+typedef gfx::renderer2d          renderer_t;
 
 typedef bklib::window::key_code_t key_code_t;
 typedef std::shared_ptr<bklib::input::ime::manager> shared_manager;
@@ -27,10 +30,10 @@ class root;
 class ime_candidate_list;
 
 namespace default_colors {
-    extern color const window;
-    extern color const border;
-    extern color const text;
-    extern color const highlight;
+    extern color_t const window;
+    extern color_t const border;
+    extern color_t const text;
+    extern color_t const highlight;
 } //namespace colors
 
 //------------------------------------------------------------------------------
@@ -205,11 +208,11 @@ public:
     typedef math::rect_base::side_x side_x;
     typedef math::rect_base::side_y side_y;
     //--------------------------------------------------------------------------
-    explicit widget_base_t(rect r);
+    explicit widget_base_t(rect_t r);
     virtual ~widget_base_t();
     //--------------------------------------------------------------------------
-    virtual void set_bounding_rect(rect r);
-    virtual rect get_bounding_rect() const;
+    virtual void   set_bounding_rect(rect_t r);
+    virtual rect_t get_bounding_rect() const;
 
     virtual void set_gui_state(gui_state& state);
 
@@ -228,8 +231,9 @@ public:
     virtual void move_to(scalar_t x, scalar_t y);
 
     virtual bool hit_test(scalar_t x, scalar_t y) const;
-    virtual bool hit_test(point p) const;
+    virtual bool hit_test(point_t p) const;
 
+    virtual void init_draw(renderer_t& renderer);
     virtual void draw(renderer_t& renderer) const;
     //--------------------------------------------------------------------------
     virtual void on_mouse_enter();
@@ -257,21 +261,29 @@ public:
     virtual void on_focus_lost()   {}
     //--------------------------------------------------------------------------
     BK_UTIL_CALLBACK_BEGIN;
-        BK_UTIL_CALLBACK_DECLARE(on_mouse_enter, void (widget_base_t& w));
-        BK_UTIL_CALLBACK_DECLARE(on_mouse_leave, void (widget_base_t& w));
-        BK_UTIL_CALLBACK_DECLARE(on_mouse_down,  void (widget_base_t& w, unsigned button));
-        BK_UTIL_CALLBACK_DECLARE(on_mouse_up,    void (widget_base_t& w, unsigned button));
-        BK_UTIL_CALLBACK_DECLARE(on_mouse_click, void (widget_base_t& w, unsigned button));
-        BK_UTIL_CALLBACK_DECLARE(on_mouse_move,  void (widget_base_t& w, unsigned x, unsigned y, signed dx, signed dy));
-
-        BK_UTIL_CALLBACK_DECLARE(on_resize, bool (widget_base_t& w, rect new_bounds, rect old_bounds));
-        BK_UTIL_CALLBACK_DECLARE(on_move,   bool (widget_base_t& w, rect new_bounds, rect old_bounds));
-
-        BK_UTIL_CALLBACK_DECLARE(on_input_char, void (widget_base_t& w, utf32codepoint code));
+        BK_UTIL_CALLBACK_DECLARE( on_mouse_enter, void (widget_base_t& w
+                                  ) );
+        BK_UTIL_CALLBACK_DECLARE( on_mouse_leave, void (widget_base_t& w
+                                  ) );
+        BK_UTIL_CALLBACK_DECLARE( on_mouse_down,  void (widget_base_t& w,
+                                  unsigned button) );
+        BK_UTIL_CALLBACK_DECLARE( on_mouse_up,    void (widget_base_t& w,
+                                  unsigned button) );
+        BK_UTIL_CALLBACK_DECLARE( on_mouse_click, void (widget_base_t& w,
+                                  unsigned button) );
+        BK_UTIL_CALLBACK_DECLARE( on_mouse_move,  void (widget_base_t& w,
+                                  unsigned x, unsigned y,
+                                  signed  dx, signed  dy) );
+        BK_UTIL_CALLBACK_DECLARE( on_resize,      bool (widget_base_t& w,
+                                  rect_t new_bounds, rect_t old_bounds) );
+        BK_UTIL_CALLBACK_DECLARE( on_move,        bool (widget_base_t& w,
+                                  rect_t new_bounds, rect_t old_bounds) );
+        BK_UTIL_CALLBACK_DECLARE( on_input_char,  void (widget_base_t& w,
+                                  utf32codepoint code) );
     BK_UTIL_CALLBACK_END;
 protected:
     gui_state* gui_state_;
-    rect       bounding_rect_;
+    rect_t     bounding_rect_;
 
     event_on_mouse_enter::type callback_on_mouse_enter_;
     event_on_mouse_leave::type callback_on_mouse_leave_;
@@ -309,7 +321,7 @@ public :
 ////////////////////////////////////////////////////////////////////////////////
 class ime_candidate_list : public widget_base_t {
 public:
-    ime_candidate_list(rect r, bool visible = false);
+    ime_candidate_list(rect_t r, bool visible = false);
     ime_candidate_list();
 
     virtual void draw(renderer_t& renderer) const;
@@ -365,10 +377,11 @@ public:
     BK_UTIL_CALLBACK_END;
 private:
     typedef std::list<widget_base_t*> zorder_t;
-    zorder_t zorder_;
-
-    gui_state gui_state_;
+    
+    zorder_t           zorder_;
+    gui_state          gui_state_;
     ime_candidate_list ime_candidate_list_;
+    gfx::renderer2d    renderer_;
 };
 
 BK_UTIL_CALLBACK_DECLARE_EXTERN(root, on_update);
@@ -384,7 +397,7 @@ public:
     static unsigned const BORDER_SIZE = 6;
     static unsigned const HEADER_SIZE = 24;
 
-    explicit window(rect r);
+    explicit window(rect_t r);
     virtual ~window() { }
 
     virtual void move_to(scalar_t x, scalar_t y) override;
@@ -403,9 +416,10 @@ public:
     virtual void on_mouse_move(
         unsigned x, unsigned y, signed dx, signed dy) override;
 
+    virtual void init_draw(renderer_t& renderer) override;
     virtual void draw(renderer_t& renderer) const override;
 
-    virtual rect const& get_client_rect() const;
+    virtual rect_t const& get_client_rect() const;
 
     virtual void set_gui_state(gui_state& state) override;
 private:
@@ -417,14 +431,14 @@ private:
         return BORDER_SIZE + HEADER_SIZE;
     }
 
-    rect compute_header_rect_() const {
+    rect_t compute_header_rect_() const {
         auto const r = get_bounding_rect();
-        return rect(r.left, r.top, r.right, r.top + HEADER_SIZE);
+        return rect_t(r.left, r.top, r.right, r.top + HEADER_SIZE);
     }
 
-    rect compute_client_rect_() const {
+    rect_t compute_client_rect_() const {
         auto const r = get_bounding_rect();
-        return rect(
+        return rect_t(
             r.left   + BORDER_SIZE,
             r.top    + HEADER_SIZE,
             r.right  - BORDER_SIZE,
@@ -456,10 +470,12 @@ private:
     state       state_;
     sizing_info sizing_info_;
 
-    range width_constraint_;
-    range height_constraint_;
+    range_t width_constraint_;
+    range_t height_constraint_;
 
-    rect client_rect_;
+    rect_t client_rect_;
+
+    renderer_t::handle rect_handle_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -467,7 +483,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 class input : public widget_base_t {
 public:
-    input(rect r);
+    input(rect_t r);
     virtual ~input() { }
 
     virtual void on_input_char(utf32codepoint codepoint);
@@ -493,7 +509,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 class list : public widget_base_t {
 public:
-    list(rect r) : widget_base_t(r) { }
+    list(rect_t r) : widget_base_t(r) { }
 private:
     std::vector<utf8string> items_;
 };
@@ -505,7 +521,7 @@ private:
 class label : public widget_base_t {
 public:
 
-    label(rect r, utf8string text);
+    label(rect_t r, utf8string text);
     virtual ~label() { }
 
     virtual void draw(renderer_t& renderer) const;
@@ -518,7 +534,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 class button : public widget_base_t {
 public:
-    button(rect r, utf8string text);
+    button(rect_t r, utf8string text);
 private:
     utf8string text_;
 };

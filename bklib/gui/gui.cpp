@@ -1,13 +1,15 @@
 #include "pch.hpp"
 #include "gui.hpp"
 
-namespace gui = ::bklib::gui;
-namespace gfx = ::bklib::gfx2d;
+#include "gfx/renderer2d.hpp"
 
-gui::color const gui::default_colors::window(0.3f, 0.3f, 0.3f);
-gui::color const gui::default_colors::border(0.5f, 0.5f, 0.5f, 0.7f);
-gui::color const gui::default_colors::text(0.8f, 0.8f, 0.8f);
-gui::color const gui::default_colors::highlight(0.7f, 0.7f, 0.7f);
+namespace gui = ::bklib::gui;
+namespace gfx = ::bklib::gfx;
+
+gui::color_t const gui::default_colors::window    = gfx::make_color<uint8_t>(80, 80, 80, 255);
+gui::color_t const gui::default_colors::border    = gfx::make_color<uint8_t>(127, 127, 127, 200);
+gui::color_t const gui::default_colors::text      = gfx::make_color<uint8_t>(200, 200, 200, 255);
+gui::color_t const gui::default_colors::highlight = gfx::make_color<uint8_t>(180, 180, 180, 255);
 
 ////////////////////////////////////////////////////////////////////////////////
 // gui_state
@@ -180,7 +182,7 @@ BK_UTIL_CALLBACK_DEFINE_IMPL(gui::parent_base_t, on_child_remove) {
 ////////////////////////////////////////////////////////////////////////////////
 // widget_base_t
 ////////////////////////////////////////////////////////////////////////////////
-gui::widget_base_t::widget_base_t(rect r)
+gui::widget_base_t::widget_base_t(rect_t r)
     : gui_state_(nullptr)
     , bounding_rect_(r)
 {
@@ -193,7 +195,7 @@ gui::widget_base_t::~widget_base_t() {
     }
 }
 
-void gui::widget_base_t::set_bounding_rect(rect r) {
+void gui::widget_base_t::set_bounding_rect(rect_t r) {
     bool allow = true;
 
     if (this->callback_on_resize_) {
@@ -211,7 +213,7 @@ void gui::widget_base_t::resize(
     bounding_rect_.resize(sy, dh);
 }
 
-gui::rect gui::widget_base_t::get_bounding_rect() const {
+gui::rect_t gui::widget_base_t::get_bounding_rect() const {
     return bounding_rect_;
 }
 
@@ -238,11 +240,14 @@ void gui::widget_base_t::move_to(scalar_t x, scalar_t y) {
 }
 
 bool gui::widget_base_t::hit_test(scalar_t x, scalar_t y) const {
-    return hit_test(point(x, y));
+    return hit_test(point_t(x, y));
 }
 
-bool gui::widget_base_t::hit_test(point p) const {
+bool gui::widget_base_t::hit_test(point_t p) const {
     return math::intersects(p, get_bounding_rect());
+}
+
+void gui::widget_base_t::init_draw(renderer_t& renderer) {
 }
 
 void gui::widget_base_t::draw(
@@ -399,17 +404,20 @@ gui::root::root(shared_manager manager)
 //! Draw all children in bottom-up z-order.
 //------------------------------------------------------------------------------
 void gui::root::draw(renderer_t& renderer) const {
-    for (auto const w : reverse_adapter(zorder_)) {
-        w->draw(renderer);
-    }
+    //for (auto const w : reverse_adapter(zorder_)) {
+    //    w->draw(renderer);
+    //}
 
-    // The IME candidate list should be drawn top-most.
-    ime_candidate_list_.draw(renderer);
+    //// The IME candidate list should be drawn top-most.
+    //ime_candidate_list_.draw(renderer);
 }
 
 gui::root::handle_t gui::root::add_child(unique_t child) {
     zorder_.emplace_front(child.get());
+    
     child->set_gui_state(gui_state_);
+    child->init_draw(renderer_);
+    
     return parent_base_t::add_child(std::move(child));
 }
 
@@ -610,7 +618,7 @@ void gui::root::on_input_char(bklib::utf32codepoint codepoint) {
 ////////////////////////////////////////////////////////////////////////////////
 // window
 ////////////////////////////////////////////////////////////////////////////////
-gui::window::window(rect r)
+gui::window::window(rect_t r)
     : widget_base_t(r)
     , client_rect_(compute_client_rect_())
     , state_(state::none)
@@ -632,49 +640,55 @@ void gui::window::set_gui_state(gui_state& state) {
     });
 }
 
-gui::rect const& gui::window::get_client_rect() const {
+gui::rect_t const& gui::window::get_client_rect() const {
     return client_rect_;
 }
 
+void gui::window::init_draw(renderer_t& renderer) {
+    rect_handle_ = renderer.create_rect(bounding_rect_);
+}
+
 void gui::window::draw(renderer_t& renderer) const {
-    auto& brush = renderer.get_solid_brush();
+    renderer.draw_rect(rect_handle_);
 
-    auto const& border = bounding_rect_;
-    auto const& window = get_client_rect();
+    //auto& brush = renderer.get_solid_brush();
 
-    // Draw the non-client area.
-    brush.set_color(title_color_);
-    renderer.fill_rect(border, brush);
+    //auto const& border = bounding_rect_;
+    //auto const& window = get_client_rect();
 
-    brush.set_color(border_color_);
-    renderer.draw_rect(border, brush);
+    //// Draw the non-client area.
+    //brush.set_color(title_color_);
+    //renderer.fill_rect(border, brush);
 
-    brush.set_color(text_color_);
-    renderer.draw_text(
-        compute_header_rect_(),
-        "Window Title"
-    );
+    //brush.set_color(border_color_);
+    //renderer.draw_rect(border, brush);
 
-    // Draw the window client area.
-    brush.set_color(back_color_);
-    renderer.fill_rect(window, brush);
+    //brush.set_color(text_color_);
+    //renderer.draw_text(
+    //    compute_header_rect_(),
+    //    "Window Title"
+    //);
 
-    brush.set_color(border_color_);
-    renderer.draw_rect(window, brush);
+    //// Draw the window client area.
+    //brush.set_color(back_color_);
+    //renderer.fill_rect(window, brush);
 
-    // Draw child widgets.
-    auto const ox = math::x(window);
-    auto const oy = math::y(window);
+    //brush.set_color(border_color_);
+    //renderer.draw_rect(window, brush);
 
-    // Clip all drawing to the client area.
-    renderer.push_clip_rect(window);
-        // Translate the coordinate space.
-        renderer.translate(ox, oy);
-            children_.for_each_reverse([&](widget_base_t& child) {
-                child.draw(renderer);
-            });
-        renderer.translate(-ox, -oy);
-    renderer.pop_clip_rect();
+    //// Draw child widgets.
+    //auto const ox = math::x(window);
+    //auto const oy = math::y(window);
+
+    //// Clip all drawing to the client area.
+    //renderer.push_clip_rect(window);
+    //    // Translate the coordinate space.
+    //    renderer.translate(ox, oy);
+    //        children_.for_each_reverse([&](widget_base_t& child) {
+    //            child.draw(renderer);
+    //        });
+    //    renderer.translate(-ox, -oy);
+    //renderer.pop_clip_rect();
 }
 
 void gui::window::on_mouse_enter() {
@@ -824,7 +838,7 @@ void gui::window::move_to(scalar_t x, scalar_t y) {
 ////////////////////////////////////////////////////////////////////////////////
 // label
 ////////////////////////////////////////////////////////////////////////////////
-gui::label::label(rect r, bklib::utf8string text)
+gui::label::label(rect_t r, bklib::utf8string text)
     : widget_base_t(r)
     , text_(std::move(text))
 {
@@ -832,16 +846,16 @@ gui::label::label(rect r, bklib::utf8string text)
 
 void
 gui::label::draw(renderer_t& renderer) const {
-    auto& b = renderer.get_solid_brush();
+    //auto& b = renderer.get_solid_brush();
 
-    renderer.draw_rect(bounding_rect_, b);
-    renderer.draw_text(bounding_rect_, text_);
+    //renderer.draw_rect(bounding_rect_, b);
+    //renderer.draw_text(bounding_rect_, text_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // input box
 ////////////////////////////////////////////////////////////////////////////////
-gui::input::input(rect r)
+gui::input::input(rect_t r)
     : widget_base_t(r)
     , text_("Input")
     , composition_start_(0)
@@ -850,14 +864,14 @@ gui::input::input(rect r)
 }
 
 void gui::input::draw(renderer_t& renderer) const {
-    auto& b = renderer.get_solid_brush();
+    //auto& b = renderer.get_solid_brush();
 
-    b.set_color(gfx2d::color(0.8f, 0.8f, 0.8f));
-    renderer.fill_rect(bounding_rect_, b);
+    //b.set_color(gfx2d::color(0.8f, 0.8f, 0.8f));
+    //renderer.fill_rect(bounding_rect_, b);
 
-    b.set_color(gfx2d::color(0.0f, 0.0f, 0.0f));
-    renderer.draw_rect(bounding_rect_, b);
-    renderer.draw_text(bounding_rect_, text_);
+    //b.set_color(gfx2d::color(0.0f, 0.0f, 0.0f));
+    //renderer.draw_rect(bounding_rect_, b);
+    //renderer.draw_text(bounding_rect_, text_);
 }
 
 void gui::input::on_mouse_down(unsigned button) {
@@ -935,98 +949,98 @@ void gui::input::on_focus_lost() {
 ////////////////////////////////////////////////////////////////////////////////
 // ime_candidate_list
 ////////////////////////////////////////////////////////////////////////////////
-gui::ime_candidate_list::ime_candidate_list(rect r, bool visible)
+gui::ime_candidate_list::ime_candidate_list(rect_t r, bool visible)
     : widget_base_t(r)
     , visible_(visible)
 {
 }
 
 gui::ime_candidate_list::ime_candidate_list()
-    : ime_candidate_list(rect(0, 0, 100, 20*9), false)
+    : ime_candidate_list(rect_t(0, 0, 100, 20*9), false)
 {
 }
 
 void gui::ime_candidate_list::draw(renderer_t& renderer) const {
-    static scalar_t const scrollbar_padding = 3.0f;
-    static scalar_t const scrollbar_width   = 16.0f;
-    static scalar_t const selection_height  = 20.0f;
+    //static scalar_t const scrollbar_padding = 3.0f;
+    //static scalar_t const scrollbar_width   = 16.0f;
+    //static scalar_t const selection_height  = 20.0f;
 
-    if (!visible_) {
-        return;
-    }
-       
-    auto const& window_rect = bounding_rect_;
-       
-    rect const scrollbar_rect = rect(
-        window_rect.right - scrollbar_width, window_rect.top,
-        window_rect.right,                   window_rect.bottom
-    );
+    //if (!visible_) {
+    //    return;
+    //}
+    //   
+    //auto const& window_rect = bounding_rect_;
+    //   
+    //rect const scrollbar_rect = rect(
+    //    window_rect.right - scrollbar_width, window_rect.top,
+    //    window_rect.right,                   window_rect.bottom
+    //);
 
-    auto const scrollbar_indicator_height = scrollbar_rect.height() / candidates_.page_count();
+    //auto const scrollbar_indicator_height = scrollbar_rect.height() / candidates_.page_count();
 
-    rect const scrollbar_indicator_rect = rect(
-        scrollbar_rect.left  + scrollbar_padding,
-        scrollbar_rect.top   + scrollbar_indicator_height * (candidates_.page() + 0) + scrollbar_padding,
-        scrollbar_rect.right - scrollbar_padding,
-        scrollbar_rect.top   + scrollbar_indicator_height * (candidates_.page() + 1) - scrollbar_padding
-    );
+    //rect const scrollbar_indicator_rect = rect(
+    //    scrollbar_rect.left  + scrollbar_padding,
+    //    scrollbar_rect.top   + scrollbar_indicator_height * (candidates_.page() + 0) + scrollbar_padding,
+    //    scrollbar_rect.right - scrollbar_padding,
+    //    scrollbar_rect.top   + scrollbar_indicator_height * (candidates_.page() + 1) - scrollbar_padding
+    //);
 
-    rect label_rect = rect(
-        window_rect.left,
-        window_rect.top,
-        window_rect.left + selection_height,
-        window_rect.top  + selection_height
-    );
+    //rect label_rect = rect(
+    //    window_rect.left,
+    //    window_rect.top,
+    //    window_rect.left + selection_height,
+    //    window_rect.top  + selection_height
+    //);
 
-    rect candidate_rect = rect(
-        label_rect.right,
-        window_rect.top,
-        window_rect.right - scrollbar_rect.width(),
-        window_rect.top   + selection_height
-    );
+    //rect candidate_rect = rect(
+    //    label_rect.right,
+    //    window_rect.top,
+    //    window_rect.right - scrollbar_rect.width(),
+    //    window_rect.top   + selection_height
+    //);
 
-    rect selection_rect = rect(
-        window_rect.left,
-        window_rect.top,
-        window_rect.right - scrollbar_rect.width(),
-        window_rect.top   + selection_height
-    );
+    //rect selection_rect = rect(
+    //    window_rect.left,
+    //    window_rect.top,
+    //    window_rect.right - scrollbar_rect.width(),
+    //    window_rect.top   + selection_height
+    //);
 
-    auto& brush = renderer.get_solid_brush();
+    //auto& brush = renderer.get_solid_brush();
 
-    // draw background
-    brush.set_color(default_colors::window);
-    renderer.fill_rect(window_rect, brush);
-        
-    brush.set_color(default_colors::highlight);
-    renderer.fill_rect(scrollbar_rect, brush);
-        
-    brush.set_color(default_colors::window);
-    renderer.fill_rect(scrollbar_indicator_rect, brush);
+    //// draw background
+    //brush.set_color(default_colors::window);
+    //renderer.fill_rect(window_rect, brush);
+    //    
+    //brush.set_color(default_colors::highlight);
+    //renderer.fill_rect(scrollbar_rect, brush);
+    //    
+    //brush.set_color(default_colors::window);
+    //renderer.fill_rect(scrollbar_indicator_rect, brush);
 
-    brush.set_color(default_colors::text);
+    //brush.set_color(default_colors::text);
 
-    renderer.push_clip_rect(window_rect);
+    //renderer.push_clip_rect(window_rect);
 
-    unsigned index = 0;
-    std::for_each(candidates_.page_begin(), candidates_.page_end(), [&](utf8string const& i) {
-        if (index == candidates_.page_offset()) {
-            brush.set_color(default_colors::highlight);
-            renderer.fill_rect(selection_rect, brush);
-            brush.set_color(default_colors::text);
-        }
+    //unsigned index = 0;
+    //std::for_each(candidates_.page_begin(), candidates_.page_end(), [&](utf8string const& i) {
+    //    if (index == candidates_.page_offset()) {
+    //        brush.set_color(default_colors::highlight);
+    //        renderer.fill_rect(selection_rect, brush);
+    //        brush.set_color(default_colors::text);
+    //    }
 
-        renderer.draw_text(candidate_rect, i);
-            
-        char const label[] = {static_cast<char>('1' + index), 0}; //! HACK ish
-        renderer.draw_text(label_rect, label);
+    //    renderer.draw_text(candidate_rect, i);
+    //        
+    //    char const label[] = {static_cast<char>('1' + index), 0}; //! HACK ish
+    //    renderer.draw_text(label_rect, label);
 
-        selection_rect.translate_y(selection_height);
-        candidate_rect.translate_y(selection_height);
-        label_rect.translate_y(selection_height);
+    //    selection_rect.translate_y(selection_height);
+    //    candidate_rect.translate_y(selection_height);
+    //    label_rect.translate_y(selection_height);
 
-        index++;
-    });
+    //    index++;
+    //});
 
-    renderer.pop_clip_rect();
+    //renderer.pop_clip_rect();
 }
