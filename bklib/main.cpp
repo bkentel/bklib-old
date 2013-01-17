@@ -11,6 +11,8 @@
 
 #include "gui/gui2.hpp"
 
+#include "gfx/text.hpp"
+
 template <size_t N, typename tag_t, typename storage_t = unsigned>
 struct color_component {
     static size_t const bits = N;
@@ -164,16 +166,6 @@ int main(int argc, char const* argv[]) {
         quit_flag = true;
     });
     //--------------------------------------------------------------------------
-
-    //for (unsigned x = 20; x < 800; x += 28) {
-    //    for (unsigned y = 20; y < 800; y += 28) {
-    //        auto win0 = root.make_widget<gui::window>(
-    //            gui::rect(gui::point(x - 10, y - 10), 100, 100)
-    //        );
-
-    //        root.add_widget(std::move(win0));
-    //    }
-    //}
     
     auto win0 = root.make_widget<gui::window>(
         gui::rect(gui::point(10, 10), 640, 480)
@@ -188,6 +180,9 @@ int main(int argc, char const* argv[]) {
     root.add_widget(std::move(win0));
     root.add_widget(std::move(win1));
     root.add_widget(std::move(win2));
+
+    gfx::font_renderer text_renderer;
+    text_renderer.init_text();
 
     auto const render_function = [&] {
         gui_renderer.set_viewport(window_w, window_h);

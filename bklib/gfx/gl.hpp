@@ -609,44 +609,119 @@ private:
 //==============================================================================
 //! Buffer object.
 //==============================================================================
-template <buffer::target Target>
+struct buffer_object_base {
+    enum class property : GLenum {
+        array_binding              = GL_ARRAY_BUFFER_BINDING
+      , atomic_counter_binding     = GL_ATOMIC_COUNTER_BUFFER_BINDING
+      //, copy_read_binding          = GL_COPY_READ_BUFFER_BINDING
+      //, copy_write_binding         = GL_COPY_WRITE_BUFFER_BINDING
+      , draw_indirect_binding      = GL_DRAW_INDIRECT_BUFFER_BINDING
+      , dispatch_indirect_binding  = GL_DISPATCH_INDIRECT_BUFFER_BINDING
+      , element_array_binding      = GL_ELEMENT_ARRAY_BUFFER_BINDING
+      , pixel_pack_binding         = GL_PIXEL_PACK_BUFFER_BINDING
+      , pixel_unpack_binding       = GL_PIXEL_UNPACK_BUFFER_BINDING
+      , shader_storage_binding     = GL_SHADER_STORAGE_BUFFER_BINDING
+      , transform_feedback_binding = GL_TRANSFORM_FEEDBACK_BUFFER_BINDING
+      , uniform_binding            = GL_UNIFORM_BUFFER_BINDING
+    };
+
+    static GLuint get_property(property p) {
+        GLint result = 0;
+        ::glGetIntegerv((GLenum)p, &result);
+
+        return static_cast<GLuint>(result);
+    }
+};
+
+template <
+      typename       T
+    , buffer::target Target = buffer::target::array
+    , buffer::usage  Usage  = buffer::usage::dynamic_draw
+>
 class buffer_object;
 
 //==============================================================================
 //! Array buffer object specialization.
 //==============================================================================
-template <>
-class buffer_object<buffer::target::array> {
+template <typename T>
+class buffer_object<
+    T
+    , buffer::target::array
+    , buffer::usage::dynamic_draw
+> : public buffer_object_base {
 public:
-    buffer_object()
+    static auto const target = buffer::target::array;
+    static auto const usage  = buffer::usage::dynamic_draw;    
+    typedef T element_type;
+
+    explicit buffer_object(size_t elements = 0)
         : id_(gl::generate<id::buffer>())
+        , elements_(0)
     {
+        if (elements) {
+            allocate(elements);
+        }
     }
 
-    static auto const target_ =
-        enum_value<buffer::target, buffer::target::array>::value;
+    void allocate(size_t elements, element_type const* data = nullptr) {
+        BK_ASSERT(elements > 0);
+        BK_ASSERT(elements_ == 0);
+
+        bind();
+        buffer_(elements * sizeof(T), data);
+    }
+
+    template <typename U>
+    void update(size_t element, U const& data, size_t offset = 0) {
+        static_assert(sizeof(U) <= sizeof(T), "type is too large.");
+        BK_ASSERT(offset + sizeof(U) <= sizeof(T));
+
+        bind();
+        buffer_(element * sizeof(T) + offset, sizeof(U), &data);
+    }
 
     void bind() {
-        ::glBindBuffer(target_, id_.value);
+        ::glBindBuffer(get_enum_value(target), id_.value);
         BK_GL_CHECK_ERROR;
     };
 
     void unbind() {
-        ::glBindBuffer(target_, 0);
+        BK_ASSERT(is_bound());
+
+        ::glBindBuffer(get_enum_value(target), 0);
         BK_GL_CHECK_ERROR;
     };
 
-    void buffer(size_t size, void const* data, buffer::usage usage) {
-        ::glBufferData(target_, size, data, get_enum_value(usage));
-        BK_GL_CHECK_ERROR;
-    };
-
-    void buffer(size_t offset, size_t size, void const* data) {
-        ::glBufferSubData(target_, offset, size, data);
-        BK_GL_CHECK_ERROR;
+    bool is_bound() const {
+        return get_property(property::array_binding) == id_.value;
     }
 private:
+    void buffer_(size_t size, void const* data) {
+        BK_ASSERT(is_bound());
+
+        ::glBufferData(
+              get_enum_value(target)
+            , size
+            , data
+            , get_enum_value(usage)
+        );
+        BK_GL_CHECK_ERROR;
+    };
+
+    void buffer_(size_t offset, size_t size, void const* data) {
+        BK_ASSERT(is_bound());
+
+        ::glBufferSubData(
+              get_enum_value(target)
+            , offset
+            , size
+            , data
+        );
+        BK_GL_CHECK_ERROR;
+    }
+
     id::buffer id_;
+    size_t     elements_;
 };
 
 } // namespace gl

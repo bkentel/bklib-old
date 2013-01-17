@@ -14,11 +14,25 @@
 namespace bklib {
 namespace gui {
 
+////////////////////////////////////////////////////////////////////////////////
+// Common types.
+////////////////////////////////////////////////////////////////////////////////
 typedef int16_t                scalar;
 typedef math::rect<scalar>     rect;
 typedef math::point<scalar, 2> point;
+typedef math::range<scalar>    range;
 typedef gfx::renderer2d        renderer;
 typedef gfx::color<uint8_t, 4> color;
+
+////////////////////////////////////////////////////////////////////////////////
+// Forward declarations.
+////////////////////////////////////////////////////////////////////////////////
+struct mouse_state_record;
+class mouse_history;
+
+struct mouse_listener;
+struct keyboard_listener;
+struct text_listener;
 
 class state;
 class root;
@@ -26,7 +40,8 @@ class widget_base;
 class window;
 
 //==============================================================================
-//!
+//! Contains a snapshop of the mouse state.
+//! std::is_pod -> true.
 //==============================================================================
 struct mouse_state_record {
     static size_t const BUTTON_COUNT = 5;
@@ -44,6 +59,20 @@ struct mouse_state_record {
         buttons[i] = false;
     }
 
+    bool is_down(size_t i) const {
+        BK_ASSERT(i < BUTTON_COUNT);
+        return buttons[i];
+    }
+
+    bool is_up(size_t i) const {
+        BK_ASSERT(i < BUTTON_COUNT);
+        return !buttons[i];
+    }
+
+    point position() const {
+        return point(x, y);
+    }
+
     position_t x;
     position_t y;
     position_t scroll;
@@ -51,7 +80,8 @@ struct mouse_state_record {
 };
 
 //==============================================================================
-//!
+//! A circular buffer of the last HISTORY_SIZE mouse states: old records are
+//! overwritten by new ones.
 //==============================================================================
 class mouse_history {
 public:
@@ -89,9 +119,8 @@ private:
 };
 
 //==============================================================================
-//!
+//! Interface for widgets that want mouse events.
 //==============================================================================
-
 struct mouse_listener {
     typedef signed   value_t;
     typedef unsigned button_t;
@@ -112,6 +141,9 @@ struct mouse_listener {
     virtual void on_lose_mouse_capture() = 0;
 };
 
+//==============================================================================
+//! Interface for widgets that want keyboard events.
+//==============================================================================
 struct keyboard_listener {
     typedef unsigned key_code;
 
@@ -123,25 +155,32 @@ struct keyboard_listener {
     virtual void on_lose_keyboard_capture() = 0;
 };
 
+//==============================================================================
+//! Interface for widgets that want text input events.
+//==============================================================================
 struct text_listener {
     virtual void on_gain_text_capture() = 0;
     virtual void on_lose_text_capture() = 0;
 };
 
 //==============================================================================
-//!
+//! Shared gui state accessible to all widgets.
 //==============================================================================
 class state {
-    friend root;
+    friend root; // logically state is part of root.
 public:
     typedef mouse_listener*    mouse_listener_t;
     typedef keyboard_listener* keyboard_listener_t;
     typedef text_listener*     text_listener_t;
 public:
-    state(renderer& r);
+    explicit state(renderer& r);
 
     //--------------------------------------------------------------------------
-    //!
+    //! Take exclusive control over an event classification.
+    //! Sends on_lose_capture_* to the current listener.
+    //! Sends on_gain_capture_* to the new listener.
+    //! @pre listener must be a valid object.
+    //! @pre listener must not currently have exclusive control.
     //--------------------------------------------------------------------------
     template <typename T>
     void capture(T listener) {
@@ -156,7 +195,9 @@ public:
     }
 
     //--------------------------------------------------------------------------
-    //!
+    //! Release exclusive control over an event classification.
+    //! Sends on_lose_capture_* to the current listener.
+    //! @pre listener must have exclusive control currently.
     //--------------------------------------------------------------------------
     template <typename T>
     void release(T listener) {
@@ -219,7 +260,7 @@ private:
 };
 
 //==============================================================================
-//!
+//! Root of the gui system; all widgets must be created by and added to it.
 //==============================================================================
 class root {
 public:
@@ -230,7 +271,7 @@ public:
     //--------------------------------------------------------------------------
     //!
     //--------------------------------------------------------------------------    
-    root(renderer& renderer);
+    explicit root(renderer& renderer);
 
     //--------------------------------------------------------------------------
     //!
@@ -241,6 +282,9 @@ public:
     //    return std::make_unique<T>(state_, std::forward<Args>(args)...);
     //}
 
+    //--------------------------------------------------------------------------
+    //! Used to create all gui widgets. Sets the widget's internal state ref.
+    //--------------------------------------------------------------------------
     template <typename T>
     std::unique_ptr<T> make_widget() {
         return std::make_unique<T>(state_);
@@ -295,7 +339,7 @@ private:
 };
 
 //==============================================================================
-//!
+//! Base type from which all widgets are derived.
 //==============================================================================
 class widget_base : public mouse_listener {
 public:
@@ -334,6 +378,8 @@ public:
     virtual void set_rect(rect const& r) override;
 
     virtual void translate(scalar dx, scalar dy);
+    
+    virtual void resize(rect::side_x sx, scalar dx, rect::side_y sy, scalar dy);
 
     virtual void on_mouse_move(value_t dx, value_t dy) override;
     virtual void on_mouse_move_to(value_t x, value_t y) override;
@@ -364,7 +410,7 @@ private:
     renderer::handle client_rect_handle_;
 
     window_state              window_state_;
-    math::border_intersection sizing_size_;
+    math::border_intersection sizing_side_;
 };
 
 } // namespace gui

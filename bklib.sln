@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		data\shaders\gui.frag = data\shaders\gui.frag
 		data\shaders\gui.vert = data\shaders\gui.vert
+		data\shaders\text.frag = data\shaders\text.frag
+		data\shaders\text.vert = data\shaders\text.vert
+		data\shaders\tile.frag = data\shaders\tile.frag
+		data\shaders\tile.vert = data\shaders\tile.vert
 	EndProjectSection
 EndProject
 Global

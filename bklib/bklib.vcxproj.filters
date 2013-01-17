@@ -102,6 +102,9 @@
     <ClInclude Include="gui\gui2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gfx\text.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gfx\targa.cpp">
@@ -132,6 +135,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gui\gui2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gfx\text.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

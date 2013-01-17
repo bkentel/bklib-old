@@ -59,6 +59,7 @@ void gui::root::on_mouse_move_to(value_t const x, value_t const y) {
         state_.push_mouse_record_(rec);
     });
 
+    // get the top-widget as a pointer, or nullptr
     auto const get_topmost = [this](value_t const x, value_t const y) {
         auto const where = get_topmost_widget_at_(x, y);
         return where != children_.end() ? where->get() : nullptr;
@@ -69,36 +70,21 @@ void gui::root::on_mouse_move_to(value_t const x, value_t const y) {
 
     if (listener) {
         listener->on_mouse_move_to(x, y);
-        //OutputDebugStringA("listener on_mouse_move_to\n");
     }
 
     mouse_listener* const curr_topmost = get_topmost(x, y);
-
-    if (listener) {
-        if (listener != curr_topmost) {
-            listener->on_mouse_leave();
-            //OutputDebugStringA("listener on_mouse_leave\n");
-        }
-        return;
-    }
-
-    mouse_listener* const last_topmost =
-        get_topmost(last_mouse.x, last_mouse.y);
-
-    if (curr_topmost != last_topmost) {
-        if (last_topmost) {
-            last_topmost->on_mouse_leave();
-            //OutputDebugStringA("last_topmost on_mouse_leave\n");
-        }
-        if (curr_topmost) {
-            curr_topmost->on_mouse_enter();
-            //OutputDebugStringA("curr_topmost on_mouse_enter\n");
-        }
-    }
+    mouse_listener* const last_topmost = get_topmost(last_mouse.x, last_mouse.y);
 
     if (curr_topmost) {
+        if (curr_topmost != last_topmost) {
+            if (last_topmost) {
+                last_topmost->on_mouse_leave();
+            }
+
+            curr_topmost->on_mouse_enter();
+        }
+
         curr_topmost->on_mouse_move(x, y);
-        //OutputDebugStringA("curr_topmost on_mouse_move\n");
     }
 }
 
@@ -266,6 +252,55 @@ void gui::window::translate(scalar dx, scalar dy) {
     renderer.update_rect(client_rect_handle_, client_rect_);
 }
 
+void gui::window::resize(
+    rect::side_x sx, scalar dx,
+    rect::side_y sy, scalar dy
+) {
+    auto const& mouse = state_.get_mouse_history().current();
+    auto&       r     = non_client_rect_;
+    
+    range constraint(100, 1000);
+    
+    // restrict resizing to when the mouse is on the proper side of the border
+    switch (sx) {
+    case rect::side_x::left :
+        if      (dx > 0 && mouse.x < r.left) sx = rect::side_x::none;
+        else if (dx < 0 && mouse.x > r.left) sx = rect::side_x::none;
+        break;
+    case rect::side_x::right :
+        if      (dx > 0 && mouse.x < r.right) sx = rect::side_x::none;
+        else if (dx < 0 && mouse.x > r.right) sx = rect::side_x::none;
+        break;
+    }
+
+    // restrict resizing to when the mouse is on the proper side of the border
+    switch (sy) {
+    case rect::side_y::top :
+        if      (dy > 0 && mouse.y < r.top) sy = rect::side_y::none;
+        else if (dy < 0 && mouse.y > r.top) sy = rect::side_y::none;
+        break;
+    case rect::side_y::bottom :
+        if      (dy > 0 && mouse.y < r.bottom) sy = rect::side_y::none;
+        else if (dy < 0 && mouse.y > r.bottom) sy = rect::side_y::none;
+        break;
+    }
+
+    auto const rx = r.resize_constrained(sx, dx, constraint);
+    auto const ry = r.resize_constrained(sy, dy, constraint);
+
+    // No change.
+    if (rx == 0 && ry == 0) return;
+
+    // update the other rects and update the renderer data
+    auto& renderer = state_.get_renderer();
+    
+    client_rect_ = get_client_rect(r);
+    title_rect_  = get_title_rect(r);
+
+    renderer.update_rect(non_client_rect_handle_, non_client_rect_);
+    renderer.update_rect(client_rect_handle_, client_rect_);
+}
+
 void gui::window::on_mouse_move_to(value_t x, value_t y) {
     auto const& mouse = state_.get_mouse_history().current();
 
@@ -277,6 +312,7 @@ void gui::window::on_mouse_move_to(value_t x, value_t y) {
         translate(dx, dy);
         break;
     case window_state::sizing :
+        resize(sizing_side_.x, dx, sizing_side_.y, dy);
         break;
     }
 }
@@ -300,7 +336,7 @@ void gui::window::on_mouse_down(button_t button) {
     if (in_border) {
         window_state_ = window_state::sizing;
         state_.capture<state::mouse_listener_t>(this);
-        sizing_size_ = in_border;
+        sizing_side_ = in_border;
         return;
     } else if (in_title) {
         window_state_ = window_state::moving;
