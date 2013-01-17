@@ -134,18 +134,11 @@ public:
         return do_alloc_(free_index, next_free_index);
     }
 
-    void update(allocation where, const_reference value) {
-        data_.update(get_allocation_index_(where), value);
-    }
-
-    template <uintptr_t Offset, typename U>
-    void update(allocation where, U const& value,
-        typename std::enable_if<
-            !std::is_same<T, U>::value
-        >::type* = nullptr
-    ) {
-        static_assert(Offset + sizeof(value) < sizeof(T), "out of range");
-        data_.update<Offset>(get_allocation_index_(where), value);
+    template <typename U>
+    void update(allocation where, U const& value, size_t offset = 0) {
+        static_assert(sizeof(U) <= sizeof(T), "value type is too large.");
+        BK_ASSERT(offset + sizeof(U) <= sizeof(T));
+        data_.update(get_allocation_index_(where), value, offset);
     }
 
     index_t block_index(allocation where) const {

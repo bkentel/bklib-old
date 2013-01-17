@@ -15,7 +15,8 @@ gfx::rect_data::tex_rect const gfx::rect_data::default_tex_coord(
 gfx::renderer2d::renderer2d()
     : vert_shader_(gl::shader_type::vertex,   L"../data/shaders/gui.vert")
     , frag_shader_(gl::shader_type::fragment, L"../data/shaders/gui.frag")
-    , rects_(1000)
+    , rects_(250)
+    , glyph_rects_(250)
 {
     model_mat_ = glm::mat4(1.0f);
     view_mat_  = glm::mat4(1.0f);
@@ -64,4 +65,26 @@ void gfx::renderer2d::set_viewport(unsigned w, unsigned h) {
     program_.set_uniform(mvp_loc_, mvp_mat_);
 
     ::glViewport(0, 0, w, h);
+}
+
+void gfx::renderer2d::update_rect(handle h, rect r) {
+    rect_data const data(r);
+        
+    static auto const offset = rect_data::vertex::position_t::offset;
+    static auto const stride = rect_data::vertex::position_t::stride;
+
+    rects_.update(h, data.vertices[0].position, 0 * stride + offset);
+    rects_.update(h, data.vertices[1].position, 1 * stride + offset);
+    rects_.update(h, data.vertices[2].position, 2 * stride + offset);
+    rects_.update(h, data.vertices[3].position, 3 * stride + offset);
+}
+
+void gfx::renderer2d::draw_rect(handle rect) const {
+    auto const i = rects_.block_index(rect);
+
+    rect_array_.bind();
+        
+    ::glDrawArrays(
+        GL_TRIANGLE_STRIP, i*4, 4
+    );
 }

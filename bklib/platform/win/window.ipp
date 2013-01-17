@@ -138,28 +138,8 @@ impl::window_impl::window_impl()
 }
 
 //------------------------------------------------------------------------------
-void impl::window_impl::create()
-{
-    ::FreeConsole();
-
-    handle_ = create_window_(this);
-    enable_raw_input();
-
-    ::ShowWindow(handle_, SW_SHOWDEFAULT);
-    ::InvalidateRect(handle_, nullptr, FALSE);
-    ::UpdateWindow(handle_);
-}
-
-//------------------------------------------------------------------------------
 void impl::window_impl::close() {
     ::DestroyWindow(handle_); // ignore the return value
-}
-
-//------------------------------------------------------------------------------
-void impl::window_impl::show(bool visible) {
-    ::ShowWindow(handle_, visible ? SW_SHOW : SW_HIDE);
-    ::InvalidateRect(handle_, nullptr, FALSE);
-    ::UpdateWindow(handle_);
 }
 
 //------------------------------------------------------------------------------
@@ -743,4 +723,30 @@ void impl::window_impl::enable_raw_input() {
     );
 
     BK_THROW_ON_FAIL(::CreateWindowExW, result ? S_OK : E_FAIL);
+}
+
+//------------------------------------------------------------------------------
+void impl::window_impl::create()
+{
+    ::FreeConsole();
+
+    handle_ = create_window_(this);
+    enable_raw_input();
+
+    ::ShowWindow(handle_, SW_SHOWDEFAULT);
+    ::InvalidateRect(handle_, nullptr, FALSE);
+    ::UpdateWindow(handle_);
+
+    // ensure that an initial size event is generated.
+    handle_message<WM_SIZE>(0, 0);
+}
+
+//------------------------------------------------------------------------------
+void impl::window_impl::show(bool visible) {
+    ::ShowWindow(handle_, visible ? SW_SHOW : SW_HIDE);
+    ::InvalidateRect(handle_, nullptr, FALSE);
+    ::UpdateWindow(handle_);
+
+    // ensure that an initial size event is generated.
+    handle_message<WM_SIZE>(0, 0);
 }

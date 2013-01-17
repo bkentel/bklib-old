@@ -6,57 +6,6 @@
 #include "common/math.hpp"
 
 namespace bklib {
-
-//==============================================================================
-//! 
-//==============================================================================
-template <
-    typename T,
-    bklib::gl::buffer::target Target = bklib::gl::buffer::target::array,
-    bklib::gl::buffer::usage  Usage  = bklib::gl::buffer::usage::dynamic_draw
->
-struct gl_buffer {
-public:
-    typedef T&       reference;
-    typedef T const& const_reference;
-
-    gl_buffer(size_t elements)
-        : size_(sizeof(T)*elements)
-    {
-        buffer_.bind();
-        buffer_.buffer(size_, nullptr, Usage);
-    }
-
-    void update(size_t element, const_reference value) {
-        buffer_.bind();
-        buffer_.buffer(element * sizeof(T), sizeof(T), &value);
-    }
-    
-    template <uintptr_t Offset, typename U>
-    void update(size_t element, U const& value,
-        typename std::enable_if<
-            !std::is_same<T, U>::value
-        >::type* = nullptr
-    ) {
-        static_assert(Offset + sizeof(value) < sizeof(T), "out of range");
-
-        buffer_.bind();
-        buffer_.buffer(element * sizeof(T) + Offset, sizeof(U), &value);
-    }
-
-    void bind() {
-        buffer_.bind();
-    }
-
-    void resize();
-    
-    void free();
-private:
-    bklib::gl::buffer_object<Target> buffer_;
-    size_t size_;
-};
-
-
 namespace gfx {
 
 //==============================================================================
@@ -280,12 +229,9 @@ struct rect_data {
     std::array<vertex, vertex_count> vertices;
 };
 
-
-
 //==============================================================================
 //! 
 //==============================================================================
-
 class renderer2d {
 public:
     enum class primitive {
@@ -307,7 +253,6 @@ public:
     }
 
     void end_draw() {
-
     }
 
     handle create_rect(rect_info const& info) {
@@ -327,17 +272,7 @@ public:
         );
     }
 
-    void update_rect(handle h, rect r) {
-        rect_data const data(r);
-        
-        static auto const offset = rect_data::vertex::position_t::offset;
-        static auto const stride = rect_data::vertex::position_t::stride;
-
-        rects_.update<0 * stride + offset>(h, data.vertices[0].position);
-        rects_.update<1 * stride + offset>(h, data.vertices[1].position);
-        rects_.update<2 * stride + offset>(h, data.vertices[2].position);
-        rects_.update<3 * stride + offset>(h, data.vertices[3].position);
-    }
+    void update_rect(handle h, rect r);
 
     template <corner C>
     void update_rect(handle h, color c) {
@@ -352,15 +287,7 @@ public:
         rects_.update<i * stride + offset>(h, data.vertices[i].color);
     }
 
-    void draw_rect(handle rect) const {
-        auto const i = rects_.block_index(rect);
-
-        rect_array_.bind();
-        
-        ::glDrawArrays(
-            GL_TRIANGLE_STRIP, i*4, 4
-        );
-    }
+    void draw_rect(handle rect) const;
 
     void set_viewport(unsigned w, unsigned h);
 private:
@@ -370,13 +297,18 @@ private:
     glm::mat4 mvp_mat_;
 
     gl::id::uniform mvp_loc_;
+    gl::id::uniform border_size_loc_;
+    gl::id::uniform corner_radius_loc_;
 
     gl::program program_;
     gl::shader  vert_shader_;
     gl::shader  frag_shader_;
 
     gl::vertex_array rect_array_;
-    pool_allocator<rect_data, gl_buffer<rect_data>> rects_;
+    gl::vertex_array glyph_array_;
+
+    pool_allocator<rect_data, gl::buffer_object<rect_data>> rects_;
+    pool_allocator<rect_data, gl::buffer_object<rect_data>> glyph_rects_;
 }; //renderer2d
 
 } // namespace gfx

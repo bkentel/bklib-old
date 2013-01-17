@@ -1,16 +1,14 @@
 #version 330 core
 
-// Input vertex data, different for all executions of this shader.
-
 layout(location = 0) in vec2 vertex_position;
 layout(location = 1) in vec4 vertex_color;
 layout(location = 2) in vec4 vertex_tex;
 layout(location = 3) in vec4 vertex_dim;
 
-out vec4 fragment_color;
 out vec2 fragment_pos;
-out vec4 fragment_dim;
+out vec4 fragment_color;
 out vec2 fragment_tex_pos;
+out vec4 fragment_dim;
 out vec2 fragment_corner_type;
 
 uniform mat4 mvp;
