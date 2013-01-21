@@ -607,6 +607,183 @@ private:
 };
 
 //==============================================================================
+//! Texure object.
+//==============================================================================
+namespace texture {
+    enum class target : GLenum {
+        tex_1d             = GL_TEXTURE_1D,
+        tex_2d             = GL_TEXTURE_2D,
+        tex_3d             = GL_TEXTURE_3D,
+        tex_1d_array       = GL_TEXTURE_1D_ARRAY,
+        tex_2d_array       = GL_TEXTURE_2D_ARRAY,
+        tex_rect           = GL_TEXTURE_RECTANGLE,
+        tex_cube           = GL_TEXTURE_CUBE_MAP,
+        tex_cube_array     = GL_TEXTURE_CUBE_MAP_ARRAY,
+        tex_buffer         = GL_TEXTURE_BUFFER,
+        tex_2d_multi       = GL_TEXTURE_2D_MULTISAMPLE,
+        tex_2d_multi_array = GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+    };
+
+    enum class binding : GLenum {
+        binding_1d = GL_TEXTURE_BINDING_1D,
+        binding_2d = GL_TEXTURE_BINDING_2D,
+        binding_3d = GL_TEXTURE_BINDING_3D, 
+        //GL_TEXTURE_BINDING_CUBE_MAP,
+        //GL_TEXTURE_BINDING_1D_ARRAY,
+        //GL_TEXTURE_BINDING_2D_ARRAY,
+        //GL_TEXTURE_BINDING_RECTANGLE,
+        //GL_TEXTURE_BINDING_BUFFER,
+        //GL_TEXTURE_BINDING_CUBE_MAP_ARRAY,
+        //GL_TEXTURE_BINDING_2D_MULTISAMPLE,
+        //GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY,
+    };
+
+    namespace detail {
+        template <target T> binding get_binding();
+        template <> inline binding get_binding<target::tex_1d>() { return binding::binding_1d; }
+        template <> inline binding get_binding<target::tex_2d>() { return binding::binding_2d; }
+    };
+
+    enum class min_filter : GLint {
+        nearest                = GL_NEAREST,
+        linear                 = GL_LINEAR,
+        nearest_mipmap_hearest = GL_NEAREST_MIPMAP_NEAREST,
+        linear_mipmap_hearest  = GL_LINEAR_MIPMAP_NEAREST,
+        nearest_mipmap_linear  = GL_NEAREST_MIPMAP_LINEAR,
+        linear_mipmap_linear   = GL_LINEAR_MIPMAP_LINEAR,
+    };
+
+    enum class internal_format : GLint {
+        r8ui = GL_R8UI,
+    };
+
+    enum class data_format : GLenum {
+        r    = GL_RED,
+        rg   = GL_RG,
+        rgb  = GL_RGB,
+        bgr  = GL_BGR,
+        rgba = GL_RGBA,
+        bgra = GL_BGRA,                
+    };
+
+    enum class data_type : GLenum {
+        byte_u    = GL_UNSIGNED_BYTE,
+        byte_s    = GL_BYTE,
+        short_u   = GL_UNSIGNED_SHORT,
+        short_s   = GL_SHORT,
+        int_u     = GL_UNSIGNED_INT,
+        int_s     = GL_INT,
+        fp_single = GL_FLOAT,
+        byte_332  = GL_UNSIGNED_BYTE_3_3_2,
+        byte_233r = GL_UNSIGNED_BYTE_2_3_3_REV,
+        //ubyte = GL_UNSIGNED_SHORT_5_6_5,
+        //ubyte = GL_UNSIGNED_SHORT_5_6_5_REV,
+        //ubyte = GL_UNSIGNED_SHORT_4_4_4_4,
+        //ubyte = GL_UNSIGNED_SHORT_4_4_4_4_REV,
+        //ubyte = GL_UNSIGNED_SHORT_5_5_5_1,
+        //ubyte = GL_UNSIGNED_SHORT_1_5_5_5_REV,
+        //ubyte = GL_UNSIGNED_INT_8_8_8_8,
+        //ubyte = GL_UNSIGNED_INT_8_8_8_8_REV,
+        //ubyte = GL_UNSIGNED_INT_10_10_10_2,
+        //ubyte = GL_UNSIGNED_INT_2_10_10_10_REV,
+    };
+
+} //namespace texture
+
+template <texture::target Target>
+struct texture_object {
+    static auto const target = Target;
+
+    texture_object()
+        : id_(generate<id::texture>())
+    {
+        BK_GL_CHECK_ERROR;
+    }
+
+    void bind() {
+        ::glBindTexture(get_enum_value(target), id_.value);
+        BK_GL_CHECK_ERROR;
+    }
+    
+    void create(
+        unsigned                 w,
+        unsigned                 h,
+        texture::internal_format internal,
+        texture::data_format     format,
+        texture::data_type       type,
+        void const*              data         = nullptr,
+        unsigned                 mipmap_level = 0
+    ) {
+        BK_ASSERT(is_bound());
+
+        ::glTexImage2D(
+            get_enum_value(target),
+            mipmap_level,
+            get_enum_value(internal),
+            w, h,
+            0,
+            get_enum_value(format),
+            get_enum_value(type),
+            data
+        );
+
+        BK_GL_CHECK_ERROR;
+    }
+
+    void update(
+        signed               xoff,
+        signed               yoff,
+        unsigned             w,
+        unsigned             h,
+        texture::data_format format,
+        texture::data_type   type,
+        void const*          data         = nullptr,
+        unsigned             mipmap_level = 0
+    ) {
+        BK_ASSERT(is_bound());
+
+        ::glTexSubImage2D(
+            get_enum_value(target),
+            mipmap_level,
+            xoff,
+            yoff,
+            w,
+            h,
+            get_enum_value(format),
+            get_enum_value(type),
+            data
+        );
+
+        BK_GL_CHECK_ERROR;
+    }
+
+    void set_min_filter(texture::min_filter const filter) {
+        BK_ASSERT(is_bound());
+
+        ::glTexParameteri(
+            get_enum_value(target),
+            GL_TEXTURE_MIN_FILTER,
+            get_enum_value(filter)
+        );
+
+        BK_GL_CHECK_ERROR;
+    }
+
+    bool is_bound() const {
+        GLint result = 0;
+
+        ::glGetIntegerv(
+            get_enum_value(texture::detail::get_binding<target>()),
+            &result
+        );
+
+        return result == id_.value;
+    }
+private:
+    id::texture id_;
+};
+
+//==============================================================================
 //! Buffer object.
 //==============================================================================
 struct buffer_object_base {

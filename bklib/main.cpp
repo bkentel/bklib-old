@@ -182,7 +182,6 @@ int main(int argc, char const* argv[]) {
     root.add_widget(std::move(win2));
 
     gfx::font_renderer text_renderer;
-    text_renderer.init_text();
 
     auto const render_function = [&] {
         gui_renderer.set_viewport(window_w, window_h);
