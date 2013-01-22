@@ -57,42 +57,30 @@ auto distance(T const& a, U const& b) -> decltype(std::sqrt(distance2(a, b))) {
 
 //------------------------------------------------------------------------------
 //! Point.
-//! @t-param T
+//! @tparam T
 //!     Scalar type.
-//! @t-param N
+//! @tparam N
 //!     Dimensions.
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
 struct point {
     static size_t const dimension = N;
 
-    template <size_t M, typename... Args>
-    void assign(T arg, Args... args) {
-        static_assert(M < N, "wrong number of arguments");
-        p_[M] = arg;
-        assign<M+1>(args...);
-    }
-
-    template <size_t M>
-    void assign(T arg) {
-        static_assert(M < N, "wrong number of arguments");
-        p_[M] = arg;
-    }
-
     template <typename... Args>
     point(T arg, Args... args) {
         static_assert(sizeof...(Args) + 1 == N, "wrong number of arguments");
-        assign<0>(arg, args...);
-    }
-    
-    template <size_t M, typename U>
-    void assign(point<U, N> const& p) {
-        p_[M] = static_cast<T>(p.p_[M]);
-    }
+
+        std::array<T, N> const temp = {
+            arg,
+            static_cast<T>(args)...
+        };
+
+        p_ = temp;
+    }   
 
     template <typename U>
     explicit point(point<U, N> const& p) {
-        assign<0>(p);
+        p_ = p.p_;
     }
     
     point(std::initializer_list<T> list) {
@@ -125,7 +113,7 @@ struct point {
         return equal<N>(*this, rhs);
     }
 
-    T p_[N];
+    std::array<T, N> p_;
 };
 
 template <typename T, size_t N>
@@ -291,10 +279,10 @@ struct rect : public rect_base {
 
     template <typename S>
     T resize_constrained(S side, T delta, range<T> const& constraint) {
-        auto const old_dist = magnitude(side);
-        auto const new_dist = old_dist + side_sign<T>(side) * delta;
-        auto const clamped  = constraint.clamp(new_dist);
-        auto const change   = clamped - old_dist;
+        T const old_dist = magnitude(side);
+        T const new_dist = old_dist + side_sign<T>(side) * delta;
+        T const clamped  = constraint.clamp(new_dist);
+        T const change   = clamped - old_dist;
         
         get_side(side) += change * side_sign<T>(side);
         check();

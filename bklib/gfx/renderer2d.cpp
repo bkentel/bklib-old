@@ -4,6 +4,35 @@
 
 namespace gfx = bklib::gfx;
 
+gfx::render_state_2d::render_state_2d()
+    : vert_shader(gl::shader_type::vertex,   L"../data/shaders/gui.vert")
+    , frag_shader(gl::shader_type::fragment, L"../data/shaders/gui.frag")
+    , attr_pos(ATTR_POS_LOC)
+    , attr_col(ATTR_COL_LOC)
+    , attr_tex(ATTR_TEX_LOC)
+    , attr_dim(ATTR_DIM_LOC)
+{
+    vert_shader.compile();
+    program.attach(vert_shader);
+
+    frag_shader.compile();
+    program.attach(frag_shader);
+
+    program.link();
+    
+    model_mat = glm::mat4(1.0f);
+    view_mat  = glm::mat4(1.0f);
+    proj_mat  = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f);
+    mvp_mat   = proj_mat * view_mat * model_mat;
+
+    mvp_loc            = program.get_uniform_location("mvp");
+    render_type_loc    = program.get_uniform_location("render_type");
+    corner_radius_loc  = program.get_uniform_location("corner_radius");
+    gradient_steps_loc = program.get_uniform_location("gradient_steps");
+    border_size_loc    = program.get_uniform_location("border_size");
+    base_texture_loc   = program.get_uniform_location("base_texture");
+}
+
 gfx::rect_data::color const gfx::rect_data::default_color = {
     0x00, 0x00, 0x00, 0xFF
 };
@@ -33,7 +62,7 @@ gfx::renderer2d::renderer2d()
 
     program_.use();
         
-    mvp_loc_ = program_.get_uniform_location("mvp");        
+    mvp_loc_ = program_.get_uniform_location("mvp");   
     program_.set_uniform(mvp_loc_, mvp_mat_);
 
     gl::id::attribute position(0);

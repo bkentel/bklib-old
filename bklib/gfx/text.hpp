@@ -56,7 +56,7 @@ public:
         }();
 
         if ((where != std::end(map_)) && (where->value == value)) {
-            return std::distance(std::begin(map_), where);
+            return where->index;
         }
 
         bool const is_full = (free_index_ == 0);
@@ -98,28 +98,118 @@ private:
 
 namespace gfx {
 
+//==============================================================================
+//! 
+//==============================================================================
+struct glyph_vertex {
+    //--------------------------------------------------------------------------
+    // (x, y) position.
+    //--------------------------------------------------------------------------
+    typedef gl::buffer::data_traits<
+        gl::buffer::size::size_2,
+        gl::buffer::type::short_s
+    > position_data;
+    //--------------------------------------------------------------------------
+    // (r, g, b, a) color.
+    //--------------------------------------------------------------------------
+    typedef gl::buffer::data_traits<
+        gl::buffer::size::size_4,
+        gl::buffer::type::byte_u
+    > color_data;
+    //--------------------------------------------------------------------------
+    // (s, t) texture coordinates.
+    //--------------------------------------------------------------------------
+    typedef gl::buffer::data_traits<
+        gl::buffer::size::size_2,
+        gl::buffer::type::short_u
+    > tex_coord_data;
+
+    enum class attribute {
+        position,
+        color,
+        tex_coord,
+    };
+
+    typedef gl::buffer::data_traits_set<
+        position_data
+      , color_data
+      , tex_coord_data
+    > data_set;
+
+    typedef data_set::attribute_traits<0>::type       position_t;
+    typedef data_set::attribute_traits<1, true>::type color_t;
+    typedef data_set::attribute_traits<2>::type       tex_coord_t;
+
+    static size_t const size = data_set::stride;
+
+    position_t::type  position;
+    color_t::type     color;
+    tex_coord_t::type tex_coord;
+};
+
+struct glyph_rect {
+    static size_t const vertex_count = 6;
+    typedef gfx::glyph_vertex vertex;
+
+    //  1    0  3
+    //  +----+  +
+    //  |   /  /| 
+    //  |  /  / |
+    //  | /  /  |
+    //  |/  /   |
+    //  +  +----+
+    //  2  4    5
+
+    static size_t const TR1 = 0;
+    static size_t const TL1 = 1;
+    static size_t const BL1 = 2;
+    static size_t const TR2 = 3;
+    static size_t const BL2 = 4;
+    static size_t const BR2 = 5;
+
+    enum class corner {
+        top_left,
+        top_right,
+        bottom_left,
+        bottom_right
+    };
+
+    glyph_rect(short x, short y, short tx, short ty);
+
+    std::array<vertex, vertex_count> vertices;
+};
+
 class font_renderer {
 public:
-    ~font_renderer() {}
-    font_renderer();
-
-    void draw_text(utf8string const& string);
-    void draw_text(platform_string const string) {}
-private:
     static size_t const TEX_SIZE    = 1024;
     static size_t const CELL_SIZE   = 16;
     static size_t const CELL_SIZE_X = (TEX_SIZE / CELL_SIZE);
     static size_t const CELL_SIZE_Y = (TEX_SIZE / CELL_SIZE);
     static size_t const CELL_COUNT  = (CELL_SIZE_X * CELL_SIZE_Y);
 
-    FT_Glyph_Metrics on_fill_cache_(size_t where, utf32codepoint code);
+    ~font_renderer() {}
+    font_renderer();
 
-    cache<CELL_COUNT, utf32codepoint, FT_Glyph_Metrics> glyph_cache_;
+    void draw_text(utf8string const& string);
+
+    void draw_text(platform_string const string) {}
+private:
+    struct glyph_info {
+        FT_UInt          index;
+        FT_Glyph_Metrics metrics;
+    };
+
+    glyph_info on_fill_cache_(size_t where, utf32codepoint code);
+
+    cache<CELL_COUNT, utf32codepoint, glyph_info> glyph_cache_;
 
     FT_Library library_;
     FT_Face    face_;
 
     gl::texture_object<gl::texture::target::tex_2d> cache_texture_;
+
+    gl::vertex_array              glyphs_array_;
+    gl::buffer_object<glyph_rect> glyphs_;
 };
 
 } // namespace gfx

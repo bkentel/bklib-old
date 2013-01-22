@@ -182,6 +182,7 @@ int main(int argc, char const* argv[]) {
     root.add_widget(std::move(win2));
 
     gfx::font_renderer text_renderer;
+    bklib::utf8string const test_string("Hello. B.P.K.");
 
     auto const render_function = [&] {
         gui_renderer.set_viewport(window_w, window_h);
@@ -190,6 +191,7 @@ int main(int argc, char const* argv[]) {
         ::glClear(GL_COLOR_BUFFER_BIT);
         
         root.draw();
+        text_renderer.draw_text(test_string);
 
         win.swap_buffers();
     };

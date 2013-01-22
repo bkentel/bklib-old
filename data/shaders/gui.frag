@@ -8,11 +8,25 @@ in vec2 fragment_corner_type;
 
 out vec4 color;
 
+uniform sampler2D base_texture;
+
+const int type_round_rect = 0;
+const int type_text       = 1;
+
+uniform int render_type = 0;
+
 uniform float corner_radius  = 10.0;
 uniform float gradient_steps = 1.0;
 uniform float border_size    = 1.0;
 
 void main() {
+    if (render_type == type_text) {
+        vec4 tex_color = texture(base_texture, fragment_tex_pos);
+        color = tex_color;
+
+        return;
+    }
+
     bool round = fragment_corner_type.x >= 0.5;
 
     vec4 d_side = vec4(

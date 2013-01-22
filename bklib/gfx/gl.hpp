@@ -654,10 +654,12 @@ namespace texture {
     };
 
     enum class internal_format : GLint {
+        r8   = GL_R8,
         r8ui = GL_R8UI,
     };
 
     enum class data_format : GLenum {
+        ir   = GL_RED_INTEGER,
         r    = GL_RED,
         rg   = GL_RG,
         rgb  = GL_RGB,
@@ -777,7 +779,7 @@ struct texture_object {
             &result
         );
 
-        return result == id_.value;
+        return static_cast<GLuint>(result) == id_.value;
     }
 private:
     id::texture id_;

@@ -46,7 +46,7 @@ class window;
 struct mouse_state_record {
     static size_t const BUTTON_COUNT = 5;
 
-    typedef signed                         position_t;
+    typedef scalar                         position_t;
     typedef std::array<bool, BUTTON_COUNT> buttons_t;
 
     void set_button(size_t i) {

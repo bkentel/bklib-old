@@ -311,5 +311,36 @@ private:
     pool_allocator<rect_data, gl::buffer_object<rect_data>> glyph_rects_;
 }; //renderer2d
 
+struct render_state_2d {
+    static GLuint const ATTR_POS_LOC = 0;
+    static GLuint const ATTR_COL_LOC = 1;
+    static GLuint const ATTR_TEX_LOC = 2;
+    static GLuint const ATTR_DIM_LOC = 3;
+
+    gl::program program;
+    gl::shader  vert_shader;
+    gl::shader  frag_shader;
+
+    gl::id::attribute attr_pos;
+    gl::id::attribute attr_col;
+    gl::id::attribute attr_tex;
+    gl::id::attribute attr_dim;
+
+    glm::mat4 model_mat;
+    glm::mat4 view_mat;
+    glm::mat4 proj_mat;
+    glm::mat4 mvp_mat;
+
+    gl::id::uniform mvp_loc;
+    
+    gl::id::uniform render_type_loc;
+
+    gl::id::uniform corner_radius_loc;
+    gl::id::uniform gradient_steps_loc;
+    gl::id::uniform border_size_loc;
+
+    gl::id::uniform base_texture_loc;
+};
+
 } // namespace gfx
 } // namespace bklib
