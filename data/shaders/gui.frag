@@ -21,7 +21,8 @@ uniform float border_size    = 1.0;
 
 void main() {
     if (render_type == type_text) {
-        vec4 tex_color = texture(base_texture, fragment_tex_pos);
+        vec4 tex_color = texture2D(base_texture, fragment_tex_pos.st / 1024.0);
+
         color = tex_color;
 
         return;

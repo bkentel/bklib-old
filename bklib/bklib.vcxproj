@@ -163,8 +163,8 @@
     <ClInclude Include="gfx\gfx.hpp" />
     <ClInclude Include="gfx\gl.hpp" />
     <ClInclude Include="gfx\renderer2d.hpp" />
+    <ClInclude Include="gfx\render_state.hpp" />
     <ClInclude Include="gfx\targa.hpp" />
-    <ClInclude Include="gfx\text.hpp" />
     <ClInclude Include="gui\gui2.hpp" />
     <ClInclude Include="input\input.hpp" />
     <ClInclude Include="log\log.hpp" />
@@ -194,7 +194,6 @@
     <ClCompile Include="gfx\gl.cpp" />
     <ClCompile Include="gfx\renderer2d.cpp" />
     <ClCompile Include="gfx\targa.cpp" />
-    <ClCompile Include="gfx\text.cpp" />
     <ClCompile Include="gui\gui2.cpp" />
     <ClCompile Include="input\input.cpp" />
     <ClCompile Include="main.cpp" />

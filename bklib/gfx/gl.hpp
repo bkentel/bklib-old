@@ -538,6 +538,7 @@ public:
 
     void set_uniform(id::uniform index, glm::mat4 const& mat) {
         ::glUniformMatrix4fv(index.value, 1, GL_FALSE, &mat[0][0]);
+        BK_GL_CHECK_ERROR;
     }
 private:
     //--------------------------------------------------------------------------
@@ -576,26 +577,32 @@ public:
 
     void bind() const {
         ::glBindVertexArray(id_.value);
+        BK_GL_CHECK_ERROR;
     }
 
     void unbind() const {
         ::glBindVertexArray(0);
+        BK_GL_CHECK_ERROR;
     }
 
     void bind_buffer(id::buffer id) {
         ::glBindBuffer(GL_ARRAY_BUFFER, id.value);
+        BK_GL_CHECK_ERROR;
     }
 
     void unbind_buffer() {
         ::glBindBuffer(GL_ARRAY_BUFFER, 0);
+        BK_GL_CHECK_ERROR;
     }
 
     void enable_attribute(id::attribute index) {
         ::glEnableVertexAttribArray(index.value);
+        BK_GL_CHECK_ERROR;
     }
 
     void disable_attribute(id::attribute index) {
         ::glDisableVertexAttribArray(index.value);
+        BK_GL_CHECK_ERROR;
     }
 
     template <typename T>
@@ -651,6 +658,11 @@ namespace texture {
         linear_mipmap_hearest  = GL_LINEAR_MIPMAP_NEAREST,
         nearest_mipmap_linear  = GL_NEAREST_MIPMAP_LINEAR,
         linear_mipmap_linear   = GL_LINEAR_MIPMAP_LINEAR,
+    };
+
+    enum class mag_filter : GLint {
+        nearest = GL_NEAREST,
+        linear  = GL_LINEAR,
     };
 
     enum class internal_format : GLint {
@@ -768,6 +780,18 @@ struct texture_object {
         ::glTexParameteri(
             get_enum_value(target),
             GL_TEXTURE_MIN_FILTER,
+            get_enum_value(filter)
+        );
+
+        BK_GL_CHECK_ERROR;
+    }
+
+    void set_mag_filter(texture::mag_filter const filter) {
+        BK_ASSERT(is_bound());
+
+        ::glTexParameteri(
+            get_enum_value(target),
+            GL_TEXTURE_MAG_FILTER,
             get_enum_value(filter)
         );
 
@@ -975,6 +999,7 @@ namespace uniform {
     struct sampler : public uniform_base {
         void set(GLint value) {
             ::glUniform1i(id_.value, value);
+            BK_GL_CHECK_ERROR;
         }
     };
 
@@ -984,21 +1009,31 @@ namespace uniform {
     template <typename T> struct scalar;
 
     template <> struct scalar<float> : public uniform_base {
-        void set(GLfloat value) { ::glUniform1f(id_.value, value); }
+        void set(GLfloat value) {
+            ::glUniform1f(id_.value, value);
+            BK_GL_CHECK_ERROR;
+        }
     };
 
     template <> struct scalar<bool> : public uniform_base {
         void set(bool value) {
             ::glUniform1i(id_.value, value ? GL_TRUE : GL_FALSE);
+            BK_GL_CHECK_ERROR;
         }
     };
 
     template <> struct scalar<signed> : public uniform_base {
-        void set(GLint value) { ::glUniform1i(id_.value, value); }
+        void set(GLint value) {
+            ::glUniform1i(id_.value, value);
+            BK_GL_CHECK_ERROR;
+        }
     };
 
     template <> struct scalar<unsigned> : public uniform_base {
-        void set(GLuint value) { ::glUniform1ui(id_.value, value); }
+        void set(GLuint value) {
+            ::glUniform1ui(id_.value, value);
+            BK_GL_CHECK_ERROR;
+        }
     };
 
     //--------------------------------------------------------------------------
@@ -1009,6 +1044,7 @@ namespace uniform {
     template <> struct matrix<float, 4, 4> : public uniform_base {
         void set(GLfloat const* const value) {
             ::glUniformMatrix4fv(id_.value, 1, GL_FALSE, value);
+            BK_GL_CHECK_ERROR;
         }
     };
 
