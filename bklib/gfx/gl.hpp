@@ -607,7 +607,7 @@ private:
 };
 
 //==============================================================================
-//! Texure object.
+//! Texture constants and enumerations
 //==============================================================================
 namespace texture {
     enum class target : GLenum {
@@ -692,6 +692,9 @@ namespace texture {
 
 } //namespace texture
 
+//==============================================================================
+//! Texture object.
+//==============================================================================
 template <texture::target Target>
 struct texture_object {
     static auto const target = Target;
@@ -902,6 +905,118 @@ private:
     id::buffer id_;
     size_t     elements_;
 };
+
+namespace uniform {
+    enum class type {
+        scalar,
+        vector,
+        matrix,
+        sampler,
+        image,
+    };
+
+    enum class data_type {
+        signed_t,
+        unsigned_t,
+        float_t,
+        bool_t,
+    };
+
+    struct traits {        
+    };
+
+    struct uniform_base {
+        uniform_base() : id_(-1) { }
+
+        void get_location(program p, GLchar const* const name) {
+            id_ = p.get_uniform_location(name);
+        }
+
+        ////----------------------------------------------------------------------
+        //// Scalars
+        ////----------------------------------------------------------------------
+        //template <uniform::type Type, uniform::data_type, typename T> void set(T value);
+
+        //template <> void set<type::scalar, data_type::signed_t, GLint>(GLint value) {
+        //    ::glUniform1i(id_.value, value);
+        //}
+
+        //template <> void set<type::scalar, data_type::float_t, GLfloat>(GLfloat value) {
+        //    ::glUniform1f(id_.value, value);
+        //}
+        ////----------------------------------------------------------------------
+        //// Sampler
+        ////----------------------------------------------------------------------
+        //template <uniform::type Type, uniform::data_type, typename T> void set(T value);
+
+        //template <> void set<type::sampler, data_type::signed_t, GLint>(GLint value) {
+        //    ::glUniform1i(id_.value, value);
+        //}
+        ////----------------------------------------------------------------------
+        //// Matrix
+        ////----------------------------------------------------------------------
+        //template <uniform::type Type, uniform::data_type, size_t Cols, size_t Rows, typename T> void set(T const* value);
+
+        //template <> void set<type::sampler, data_type::signed_t, 4, 4, GLfloat>(GLfloat const* value) {
+        //    ::glUniformMatrix4fv(id_.value, 1, GL_FALSE, value);
+        //}
+
+        id::uniform id_;
+    };
+    
+    template <size_t Size, data_type DataType>
+    struct vector {
+        static_assert(Size >= 2 && Size <= 4, "bad size");
+    };
+
+    //--------------------------------------------------------------------------
+    // Sampler types.
+    //--------------------------------------------------------------------------
+    struct sampler : public uniform_base {
+        void set(GLint value) {
+            ::glUniform1i(id_.value, value);
+        }
+    };
+
+    //--------------------------------------------------------------------------
+    // Scalar types.
+    //--------------------------------------------------------------------------
+    template <typename T> struct scalar;
+
+    template <> struct scalar<float> : public uniform_base {
+        void set(GLfloat value) { ::glUniform1f(id_.value, value); }
+    };
+
+    template <> struct scalar<bool> : public uniform_base {
+        void set(bool value) {
+            ::glUniform1i(id_.value, value ? GL_TRUE : GL_FALSE);
+        }
+    };
+
+    template <> struct scalar<signed> : public uniform_base {
+        void set(GLint value) { ::glUniform1i(id_.value, value); }
+    };
+
+    template <> struct scalar<unsigned> : public uniform_base {
+        void set(GLuint value) { ::glUniform1ui(id_.value, value); }
+    };
+
+    //--------------------------------------------------------------------------
+    // Matrix types.
+    //--------------------------------------------------------------------------
+    template <typename T, size_t Cols, size_t Rows> struct matrix;
+
+    template <> struct matrix<float, 4, 4> : public uniform_base {
+        void set(GLfloat const* const value) {
+            ::glUniformMatrix4fv(id_.value, 1, GL_FALSE, value);
+        }
+    };
+
+    typedef matrix<float, 4, 4> mat4;
+    typedef scalar<float>       float_s;
+    typedef scalar<unsigned>    uint_s;
+    typedef scalar<signed>      int_s;
+}
 
 } // namespace gl
 } // namespace bklib

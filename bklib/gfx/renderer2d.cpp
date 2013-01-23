@@ -25,12 +25,12 @@ gfx::render_state_2d::render_state_2d()
     proj_mat  = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f);
     mvp_mat   = proj_mat * view_mat * model_mat;
 
-    mvp_loc            = program.get_uniform_location("mvp");
-    render_type_loc    = program.get_uniform_location("render_type");
-    corner_radius_loc  = program.get_uniform_location("corner_radius");
-    gradient_steps_loc = program.get_uniform_location("gradient_steps");
-    border_size_loc    = program.get_uniform_location("border_size");
-    base_texture_loc   = program.get_uniform_location("base_texture");
+    mvp_loc.get_location(            program, "mvp"            );
+    render_type_loc.get_location(    program, "render_type"    );
+    corner_radius_loc.get_location(  program, "corner_radius"  );
+    gradient_steps_loc.get_location( program, "gradient_steps" );
+    border_size_loc.get_location(    program, "border_size"    );
+    base_texture_loc.get_location(   program, "base_texture"   );
 }
 
 gfx::rect_data::color const gfx::rect_data::default_color = {
@@ -42,48 +42,24 @@ gfx::rect_data::tex_rect const gfx::rect_data::default_tex_coord(
 );
 
 gfx::renderer2d::renderer2d()
-    : vert_shader_(gl::shader_type::vertex,   L"../data/shaders/gui.vert")
-    , frag_shader_(gl::shader_type::fragment, L"../data/shaders/gui.frag")
+    : state_()
     , rects_(250)
     , glyph_rects_(250)
 {
-    model_mat_ = glm::mat4(1.0f);
-    view_mat_  = glm::mat4(1.0f);
-    proj_mat_  = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f);
-    mvp_mat_   = proj_mat_ * view_mat_ * model_mat_;
-          
-    vert_shader_.compile();
-    program_.attach(vert_shader_);
-
-    frag_shader_.compile();
-    program_.attach(frag_shader_);
-
-    program_.link();
-
-    program_.use();
-        
-    mvp_loc_ = program_.get_uniform_location("mvp");   
-    program_.set_uniform(mvp_loc_, mvp_mat_);
-
-    gl::id::attribute position(0);
-    gl::id::attribute color(1);
-    gl::id::attribute tex_coord(2);
-    gl::id::attribute dimensions(3);
+    state_.mvp_loc.set(&state_.mvp_mat[0][0]);
 
     rect_array_.bind();
+        rects_.buffer().bind();
 
-    rects_.buffer().bind();
+        rect_array_.enable_attribute(state_.attr_pos);
+        rect_array_.enable_attribute(state_.attr_col);
+        rect_array_.enable_attribute(state_.attr_tex);
+        rect_array_.enable_attribute(state_.attr_dim);
 
-    rect_array_.enable_attribute(position);
-    rect_array_.enable_attribute(color);
-    rect_array_.enable_attribute(tex_coord);
-    rect_array_.enable_attribute(dimensions);
-
-    rect_array_.set_attribute_pointer<rect_data::vertex::position_t>(position);
-    rect_array_.set_attribute_pointer<rect_data::vertex::color_t>(color);
-    rect_array_.set_attribute_pointer<rect_data::vertex::tex_coord_t>(tex_coord);
-    rect_array_.set_attribute_pointer<rect_data::vertex::dimensions_t>(dimensions);
-
+        rect_array_.set_attribute_pointer<rect_data::vertex::position_t>(state_.attr_pos);
+        rect_array_.set_attribute_pointer<rect_data::vertex::color_t>(state_.attr_col);
+        rect_array_.set_attribute_pointer<rect_data::vertex::tex_coord_t>(state_.attr_tex);
+        rect_array_.set_attribute_pointer<rect_data::vertex::dimensions_t>(state_.attr_dim);
     rect_array_.unbind();
 }
 

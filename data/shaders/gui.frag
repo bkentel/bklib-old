@@ -13,7 +13,7 @@ uniform sampler2D base_texture;
 const int type_round_rect = 0;
 const int type_text       = 1;
 
-uniform int render_type = 0;
+uniform uint render_type = 0;
 
 uniform float corner_radius  = 10.0;
 uniform float gradient_steps = 1.0;

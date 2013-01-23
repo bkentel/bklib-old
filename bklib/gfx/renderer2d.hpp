@@ -195,34 +195,6 @@ struct rect_data {
         set_position<corner::top_left>(r);
     }
 
-    //explicit
-    //rect_data( rect r,
-    //           color       tl_color        = default_color,
-    //           corner_type tl_corner_style = corner_type::round,
-    //           color       tr_color        = default_color,
-    //           corner_type tr_corner_style = corner_type::round,
-    //           color       bl_color        = default_color,
-    //           corner_type bl_corner_style = corner_type::round,
-    //           color       br_color        = default_color,
-    //           corner_type br_corner_style = corner_type::round
-    //) {
-    //    set_position<corner::bottom_right>(r);
-    //    set_color<corner::bottom_right>(tl_color);
-    //    set_corner_type<corner::bottom_right>(tl_corner_style);
-
-    //    set_position<corner::top_right>(r);
-    //    set_color<corner::top_right>(tr_color);
-    //    set_corner_type<corner::top_right>(tr_corner_style);
-
-    //    set_position<corner::bottom_left>(r);
-    //    set_color<corner::bottom_left>(bl_color);
-    //    set_corner_type<corner::bottom_left>(bl_corner_style);
-
-    //    set_position<corner::top_left>(r);
-    //    set_color<corner::top_left>(br_color);
-    //    set_corner_type<corner::top_left>(br_corner_style);
-    //}
-
     rect_data() {
     }
 
@@ -232,12 +204,45 @@ struct rect_data {
 //==============================================================================
 //! 
 //==============================================================================
+struct render_state_2d {
+    render_state_2d();
+
+    static GLuint const ATTR_POS_LOC = 0;
+    static GLuint const ATTR_COL_LOC = 1;
+    static GLuint const ATTR_TEX_LOC = 2;
+    static GLuint const ATTR_DIM_LOC = 3;
+
+    gl::program program;
+    gl::shader  vert_shader;
+    gl::shader  frag_shader;
+
+    gl::id::attribute attr_pos;
+    gl::id::attribute attr_col;
+    gl::id::attribute attr_tex;
+    gl::id::attribute attr_dim;
+
+    glm::mat4 model_mat;
+    glm::mat4 view_mat;
+    glm::mat4 proj_mat;
+    glm::mat4 mvp_mat;
+
+    gl::uniform::mat4    mvp_loc;
+    gl::uniform::uint_s  render_type_loc;
+    gl::uniform::float_s corner_radius_loc;
+    gl::uniform::float_s gradient_steps_loc;
+    gl::uniform::float_s border_size_loc;
+
+    gl::uniform::sampler base_texture_loc;
+private:
+    render_state_2d(render_state_2d const&); //=delete
+    render_state_2d& operator=(render_state_2d const&); //=delete
+};
+
+//==============================================================================
+//! 
+//==============================================================================
 class renderer2d {
 public:
-    enum class primitive {
-        rectangle,
-    };
-
     typedef pool_allocator_base::allocation handle;
 
     typedef rect_data::rect   rect;
@@ -291,18 +296,7 @@ public:
 
     void set_viewport(unsigned w, unsigned h);
 private:
-    glm::mat4 model_mat_;
-    glm::mat4 view_mat_;
-    glm::mat4 proj_mat_;
-    glm::mat4 mvp_mat_;
-
-    gl::id::uniform mvp_loc_;
-    gl::id::uniform border_size_loc_;
-    gl::id::uniform corner_radius_loc_;
-
-    gl::program program_;
-    gl::shader  vert_shader_;
-    gl::shader  frag_shader_;
+    render_state_2d state_;
 
     gl::vertex_array rect_array_;
     gl::vertex_array glyph_array_;
@@ -311,36 +305,7 @@ private:
     pool_allocator<rect_data, gl::buffer_object<rect_data>> glyph_rects_;
 }; //renderer2d
 
-struct render_state_2d {
-    static GLuint const ATTR_POS_LOC = 0;
-    static GLuint const ATTR_COL_LOC = 1;
-    static GLuint const ATTR_TEX_LOC = 2;
-    static GLuint const ATTR_DIM_LOC = 3;
 
-    gl::program program;
-    gl::shader  vert_shader;
-    gl::shader  frag_shader;
-
-    gl::id::attribute attr_pos;
-    gl::id::attribute attr_col;
-    gl::id::attribute attr_tex;
-    gl::id::attribute attr_dim;
-
-    glm::mat4 model_mat;
-    glm::mat4 view_mat;
-    glm::mat4 proj_mat;
-    glm::mat4 mvp_mat;
-
-    gl::id::uniform mvp_loc;
-    
-    gl::id::uniform render_type_loc;
-
-    gl::id::uniform corner_radius_loc;
-    gl::id::uniform gradient_steps_loc;
-    gl::id::uniform border_size_loc;
-
-    gl::id::uniform base_texture_loc;
-};
 
 } // namespace gfx
 } // namespace bklib
