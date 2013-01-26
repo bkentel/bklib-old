@@ -219,31 +219,36 @@ void gfx::font_renderer::impl_t::draw_text(bklib::utf8string const& string) {
 
         bool const has_kerning = FT_HAS_KERNING(face_);
 
-        glyph_rect const gr = glyph_rect(x >> 6, y >> 6, tx, ty);
-        rects.emplace_back(gr);
-
-        glyphs_.update(element, gr);
-
-        x += 16 << 6;//info.metrics.horiAdvance;
-
         FT_UInt const right = info.index;
 
         if (has_kerning && left) {
             FT_Vector kerning;
             FT_Error const result =
-                FT_Get_Kerning(face_, left, right, FT_KERNING_DEFAULT, &kerning);
+                FT_Get_Kerning(face_, left, right, FT_KERNING_UNSCALED, &kerning);
 
             if (result) {
                 BK_TODO_BREAK;
             }
 
-            //x += kerning.x;
+            x += kerning.x;
         }
+
+        auto const adjust_y = (16 << 6) - info.metrics.horiBearingY;
+
+        glyph_rect const gr = glyph_rect(x >> 6, (y+adjust_y) >> 6, tx, ty);
+        rects.emplace_back(gr);
+
+        glyphs_.update(element, gr);
+
+        x += info.metrics.horiAdvance;
 
         left = right;
         element++;
     }
 
+    ::glEnable(GL_BLEND);
+    ::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     ::glActiveTexture(GL_TEXTURE0);
     state_.base_texture_loc.set(0);
     this->cache_texture_.bind();

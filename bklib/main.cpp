@@ -186,7 +186,7 @@ int main(int argc, char const* argv[]) {
         ::glClear(GL_COLOR_BUFFER_BIT);
         
         root.draw();
-        gui_renderer.draw_text("Hello World!");
+        gui_renderer.draw_text("AV Hello World! gpyq^^");
 
         win.swap_buffers();
     };
